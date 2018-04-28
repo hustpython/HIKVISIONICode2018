@@ -8,12 +8,13 @@ if __name__ == "__main__":
         print("Server Port: " + sys.argv[2])
         print("Auth Token: " + sys.argv[3])
 
-        demoMap = r'''
+        demoMap = r'''{"map": 
         {
             "x": 100,  
             "y": 100,
             "z": 100,
             "comment": "Hello, AI!"
+        }
         }
         '''
         ai = UAVGoodsAIService(sys.argv[1], sys.argv[2], sys.argv[3])

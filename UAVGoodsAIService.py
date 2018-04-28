@@ -13,7 +13,7 @@ class UAVGoodsAIService:
 
     def sayHello(self, mystr):
         self.map = json.loads(mystr)
-        return self.toJson(self.map)
+        return self.toJson(self.map["map"])
 
     def numpyDemo(self):
         n = 1000000
