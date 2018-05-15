@@ -22,7 +22,7 @@ def SendJuderData(hSocket, dict_send):
     len_json = str(len(str_json)).zfill(8)
     str_all = len_json + str_json
     print(str_all)
-    ret = hSocket.sendall(str_all)
+    ret = hSocket.sendall(str_all.encode())
     if ret == None:
         ret = 0
     print('sendall', ret)
