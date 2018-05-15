@@ -90,7 +90,7 @@ def main(szIp, nPort, szToken):
     
     #初始化比赛状态信息
     pstMatchStatus = {}
-    pstMatchStatus["time"] = 1
+    pstMatchStatus["time"] = 0
 
     #初始化飞机状态信息
     pstFlayPlane = {}
@@ -109,7 +109,6 @@ def main(szIp, nPort, szToken):
     while True:
 
         # // 进行当前时刻的数据计算, 填充飞行计划，注意：1时刻不能进行移动，即第一次进入该循环时
-        # if pstMatchStatus["time"] == 0:
         FlyPlane = AlgorithmCalculationFun(pstMapInfo, pstMatchStatus, pstFlayPlane)
         FlyPlane_send['UAV_info'] = FlyPlane
 
