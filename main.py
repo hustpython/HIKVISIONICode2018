@@ -8,15 +8,19 @@ import struct
 def RecvJuderData(hSocket):
     nRet = -1
     Message = hSocket.recv(1024*1024*4)
-    len_json = int(Message[:8]) 
+    # 接收数据部分示例:b'00001980{"token":"1e49d75c-424c-4e50-9550-106b5b54db97"\
+    # ,"notice":"step",
+    len_json = int(Message[:8])
+    # '00001980'表示服务器发送的完整数据的总长度 
     str_json = Message[8:].decode()
-    #print(len_json,len(str_json))
+    # 实际接收到的数据的长度
+    # 将接收到的数据与完整数据长度进行对比来判断
+    # 数据接收是否完整，如果不完整则继续接收
     while len(str_json) != len_json :
         Message = hSocket.recv(1024*1024*4)
         str_json += Message.decode()
     nRet = 0
     Dict = json.loads(str_json)
-    #print(Dict)
     return nRet, Dict
 # 接收一个字典,将其转换成json文件,并计算大小,发送至服务器
 def SendJuderData(hSocket, dict_send):
