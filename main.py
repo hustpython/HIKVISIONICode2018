@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py 39.105.71.189 30422 1e49d75c-424c-4e50-9550-106b5b54db97
+# python main.py 47.95.243.246 31170 1e49d75c-424c-4e50-9550-106b5b54db97
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -40,7 +40,7 @@ def AlgorithmCalculationFun(a, b, c):
     #parse mapinfo
     # restricts
     flayhlow = a["h_low"]
-    flayhhight = a["h_hight"]
+    flayhhight = a["h_high"]
 
     buildings = [{"x_start":buildinfo["x"],"x_end":buildinfo["x"]+buildinfo["l"]-1,\
                  "y_start":buildinfo["y"],"y_end":buildinfo["y"]+buildinfo["w"]-1,
@@ -54,15 +54,22 @@ def AlgorithmCalculationFun(a, b, c):
     uavloadweight = {}
     for i in a["UAV_price"]:
         uavloadweight[i["type"]] = i["load_weight"]
-
+    #print(FlyPlane)
     # 如果uav是寻找goods的起始点，则应该传入起始位置
     # 若uav正在去送goods到终点，则应该传入终点位置
-    def MoveandJudge(x,y,z,x_end,y_end):
+    # map(),pool 多线程
+    print(flayhlow)
+    def MoveandJudge(FlyPlane):
         # 垂直上升
-        if z < flayhlow:
-            return x,y,z+1
+        z_status = [sin_z["z"] for sin_z in FlyPlane]
+        for i,_ in enumerate(FlyPlane):
+            z = FlyPlane[i]["z"]
+            if z < flayhlow and (z+1) not in z_status:
+                FlyPlane[i]["z"] += 1
+                z_status[i] += 1
+        print(FlyPlane)
         # 水平方向的６种飞行方式
-        horizonfly_modes = [[x+1,y],[x-1,y],[x,y+1],[x,y-1],[x+1,y+1],[x-1,y-1]]
+        '''horizonfly_modes = [[x+1,y],[x-1,y],[x,y+1],[x,y-1],[x+1,y+1],[x-1,y-1]]
         
         feasiblefly_modes = []
         # 去除操作后会撞墙的 mode
@@ -84,7 +91,7 @@ def AlgorithmCalculationFun(a, b, c):
             dis = (x_end - every_mode[0])**2 + (y_end - every_mode[1])
             if dis < dis_max:
                 dis_max = dis 
-                short_mode = every_mode
+                short_mode = every_mode'''
     # 购买uav
     def toPurchaseUav():
         pass
@@ -114,7 +121,7 @@ def AlgorithmCalculationFun(a, b, c):
        for uav in notcarryandnormal:
            for good in goods:
               if uavloadweight[uav["type"]] > good["weight"]:
-                  MoveandJudge()
+                  MoveandJudge(FlyPlane)
     return FlyPlane
 
 
