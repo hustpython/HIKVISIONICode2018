@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py 47.95.243.246 31170 1e49d75c-424c-4e50-9550-106b5b54db97
+# python main.py 47.95.243.246 31868 53eda47f-a90f-417d-be15-30daac19cd66
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -58,7 +58,6 @@ def AlgorithmCalculationFun(a, b, c):
     # 如果uav是寻找goods的起始点，则应该传入起始位置
     # 若uav正在去送goods到终点，则应该传入终点位置
     # map(),pool 多线程
-    print(flayhlow)
     def MoveandJudge(FlyPlane):
         # 垂直上升
         z_status = [sin_z["z"] for sin_z in FlyPlane]
@@ -67,7 +66,8 @@ def AlgorithmCalculationFun(a, b, c):
             if z < flayhlow and (z+1) not in z_status:
                 FlyPlane[i]["z"] += 1
                 z_status[i] += 1
-        print(FlyPlane)
+            else:
+                FlyPlane[i]["x"] += 1
         # 水平方向的６种飞行方式
         '''horizonfly_modes = [[x+1,y],[x-1,y],[x,y+1],[x,y-1],[x+1,y+1],[x-1,y-1]]
         
