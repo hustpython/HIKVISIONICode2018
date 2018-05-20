@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py 47.95.243.246 30590 e82e4496-8a3d-489b-b9cc-4b2e689dfd94
+# python main.py 47.95.243.246 30227 03007105-159b-4027-8edb-dcd8e5c95eeb
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -37,8 +37,7 @@ def SendJuderData(hSocket, dict_send):
 
 class task_uav(object):
     def __init__(self):
-        self.flyfrompark = True
-        self.flyfromputgood = False
+        self.upwithnogood = True
         self.downtogetgood = False
         self.upwithgood = False 
         self.downtoputgood = False
@@ -54,15 +53,11 @@ class task_uav(object):
         self.uavno = no 
     def getuavno(self):
         return self.uavno
-    def setflyfrompark(self,state):
-        self.flyfrompark = state 
+    def setupwithnogood(self,state):
+        self.upwithnogood = state 
     #===返回上升状态
-    def getflyfrompark(self):
-        return self.flyfrompark
-    def setflyfromputgood(self,state):
-        self.flyfromputgood = state 
-    def getflyfromputgood(self):
-        return self.flyfromputgood
+    def getupwithnogood(self):
+        return self.upwithnogood
     def setgetgoodxy(self,state):
         self.getgoodxy = state
     def getgetgoodxy(self):
@@ -106,7 +101,6 @@ class Algo():
         self.tasklist = [0,0,0,0,0,0]
         self.goodnohasbeendetected = []
     def AlgorithmCalculationFun(self,a, b, c):
-        FlyPlane = c["astUav"]
         #parse matchstatus
         # good_no 出现 -1 的情况：
         # 1.在停机坪或故意不运送货物
@@ -119,39 +113,38 @@ class Algo():
                     "y_start":buildinfo["y"],"y_end":buildinfo["y"]+buildinfo["w"],
                     "z_start":0,"z_end":buildinfo["h"]}\
                     for buildinfo in a["building"]]
-        if b["time"] >= 1:
-        # value of us:b["we_value"]
-            '''UAV_we = b["UAV_we"]
-            carryandnormal = [i for i in UAV_we if i["goods_no"]!= -1 and i["status"] == 0]
-            notcarryandnormal = [i for i in UAV_we if i["goods_no"] == -1 and i["status"] == 0]
-        
-            for uav in notcarryandnormal:
-                for good in goods:
-                    if uavloadweight[uav["type"]] > good["weight"]:
-                        pass'''
+        if b["time"] == 0:
+            FlyPlane = c["astUav"]
+        else:
+            FlyPlane = b["UAV_we"]
             goods = b["goods"]
             # 垂直上升,一架一架的离开，直达所有飞机到达最低高度
-            z_status = [sin_z["z"] for sin_z in FlyPlane]
+            z_status = [sin_z["z"] for sin_z in FlyPlane ]
             for i,_ in enumerate(FlyPlane):
                 lastgoods = [good for good in goods if good["no"] not in goodshasbeenchoose \
                              and good["no"] not in self.goodnohasbeendetected]
-                if not self.tasklist[i] or self.tasklist[i].getuavno() != FlyPlane[i]["no"]:
+                # 如何处理毁掉的uav,待修改
+                if FlyPlane[i]["status"] == 1:
+                    continue
+                if not self.tasklist[i]:
                    uavtask = task_uav()
                    uavtask.setuavno(FlyPlane[i]["no"])
                 else:
-                   uavtask = self.tasklist[i]
-                if  (FlyPlane[i]["z"]+1) not in z_status and uavtask.getflyfrompark():
+                   uavtask = [uav for uav in self.tasklist if uav and uav.getuavno() == FlyPlane[i]["no"]][0]
+                if uavtask.getupwithnogood() and ((FlyPlane[i]["z"]+1) not in z_status or (FlyPlane[i]["x"] != a["parking"]["x"] or FlyPlane[i]["y"] != a["parking"]["y"])) :
                     FlyPlane[i]["z"] += 1
                     z_status[i] += 1
                     if FlyPlane[i]["z"] > flayhlow:
-                        uavtask.setflyfrompark(False)
+                        uavtask.setupwithnogood(False)
                         uavtask.setgetgoodxy(True)
                 elif uavtask.getgetgoodxy() :
                     z_status[i] = -1
                     dis = [(good["start_x"] - FlyPlane[i]["x"])**2 + (good["start_y"] - FlyPlane[i]["y"])**2 \
                            if good["weight"]<=FlyPlane[i]["load_weight"] else float("inf") for good in lastgoods]
                     if not dis or min(dis) == float("inf"):
-                        return FlyPlane
+                        # 必须要修改
+                        # return FlyPlane
+                        continue
                     min_dis_index = dis.index(min(dis))
                     if lastgoods[min_dis_index]["no"] not in goodshasbeenchoose:
                        goodshasbeenchoose.append(lastgoods[min_dis_index]["no"])
@@ -162,7 +155,6 @@ class Algo():
                         res = [False if buildsize["x_start"] <= FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))) <= buildsize["x_end"] and \
                         buildsize["y_start"] <= FlyPlane[i]["y"] <= buildsize["y_end"] and FlyPlane[i]["z"] < buildsize["z_end"] else True for \
                         buildsize in buildings] 
-                        
                         if False not in res:
                             temp_flyx = FlyPlane[i]["x"]
                             FlyPlane[i]["x"] += int(x_dis/(abs(x_dis)))
@@ -199,7 +191,7 @@ class Algo():
                             uavtask.setupwithgood(True)
                         else:
                             uavtask.setdowntogetgood(False)
-                            uavtask.setflyfrompark(True)
+                            uavtask.setupwithnogood(True)
                     else:
                         FlyPlane[i]["z"] -= 1
 
@@ -241,18 +233,12 @@ class Algo():
                         uavtask.setdowntoputgood(True)
                 elif uavtask.getdowntoputgood():
                     if  FlyPlane[i]["z"] == 0:
-                        FlyPlane[i]["goods_no"] = -1
                         if uavtask.getgoodno() in self.goodnohasbeendetected:
                             self.goodnohasbeendetected.remove(uavtask.getgoodno())
                         uavtask.setdowntoputgood(False)
-                        uavtask.setflyfromputgood(True)
+                        uavtask.setupwithnogood(True)
                     else:
                         FlyPlane[i]["z"] -= 1
-                elif uavtask.getflyfromputgood():
-                    FlyPlane[i]["z"] += 1
-                    if FlyPlane[i]["z"] > flayhlow:
-                        uavtask.setflyfromputgood(False)
-                        uavtask.setgetgoodxy(True)
                 self.tasklist[i] = uavtask
         #===============================把这些限制条件先放一放=======================
         # #parse mapinfo
@@ -263,45 +249,11 @@ class Algo():
                 "y_start":foginfo["y"],"y_end":foginfo["y"]+foginfo["w"]-1,
                 "z_start":foginfo["b"],"z_end":foginfo["t"]}\
                 for foginfo in a["fog"]]
-
-        uavloadweight = {}
-        for i in a["UAV_price"]:
-            uavloadweight[i["type"]] = i["load_weight"]
-        #print(FlyPlane)
-        # 如果uav是寻找goods的起始点，则应该传入起始位置
-        # 若uav正在去送goods到终点，则应该传入终点位置
-        # map(),pool 多线程
         
-            
-            # 水平方向的６种飞行方式
-            '''horizonfly_modes = [[x+1,y],[x-1,y],[x,y+1],[x,y-1],[x+1,y+1],[x-1,y-1]]
-            
-            feasiblefly_modes = []
-            # 去除操作后会撞墙的 mode
-            for every_mode in horizonfly_modes:
-                flag = 1
-                for every_build in buildings:
-                if z < every_build["z_end"] and every_mode[0]>= every_build["x_start"] and \
-                    every_mode[0]<= every_build["x_end"] \
-                    and every_mode[1] >= every_build["y_start"] and every_mode[1] <= every_build["y_end"]:
-                    flag = 0
-                if flag:
-                    feasiblefly_modes.append(every_mode)
-            
-            # 利用欧氏距离找出最短路径 mode 
-            # 分达到 货物 起点和 货物目的地两种情况
-            dis_max = 100000
-            short_mode = []
-            for every_mode in feasiblefly_modes:
-                dis = (x_end - every_mode[0])**2 + (y_end - every_mode[1])
-                if dis < dis_max:
-                    dis_max = dis 
-                    short_mode = every_mode'''
         # 购买uav
         def toPurchaseUav(self):
-            pass
-                 
-        print(FlyPlane[0])              
+            pass   
+        print(FlyPlane[2])          
         return FlyPlane
 
 
@@ -398,7 +350,6 @@ def main(szIp, nPort, szToken):
         
         FlyPlane = Algo_main.AlgorithmCalculationFun(pstMapInfo, pstMatchStatus, pstFlayPlane)
         FlyPlane_send['UAV_info'] = FlyPlane
-        #print(pstMatchStatus["time"])
         #==================mxq=====================
         #发送作战路线
         
