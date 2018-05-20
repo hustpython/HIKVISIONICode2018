@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py 47.95.243.246 31105 e82e4496-8a3d-489b-b9cc-4b2e689dfd94
+# python main.py 47.95.243.246 31023 e82e4496-8a3d-489b-b9cc-4b2e689dfd94
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -99,6 +99,7 @@ class task_uav(object):
 class Algo():
     def __init__(self):
         self.tasklist = [0,0,0,0,0,0]
+        self.goodnohasbeendetected = []
     def AlgorithmCalculationFun(self,a, b, c):
         FlyPlane = c["astUav"]
         #parse matchstatus
@@ -127,7 +128,8 @@ class Algo():
             # 垂直上升,一架一架的离开，直达所有飞机到达最低高度
             z_status = [sin_z["z"] for sin_z in FlyPlane]
             for i,_ in enumerate(FlyPlane):
-                lastgoods = [good for good in goods if good["no"] not in goodshasbeenchoose]
+                lastgoods = [good for good in goods if good["no"] not in goodshasbeenchoose \
+                             and good["no"] not in self.goodnohasbeendetected]
                 if not self.tasklist[i] or self.tasklist[i].getuavno() != FlyPlane[i]["no"]:
                    uavtask = task_uav()
                    uavtask.setuavno(FlyPlane[i]["no"])
@@ -143,11 +145,9 @@ class Algo():
                     z_status[i] = -1
                     dis = [(good["start_x"] - FlyPlane[i]["x"])**2 + (good["start_y"] - FlyPlane[i]["y"])**2 \
                            if good["weight"]<FlyPlane[i]["load_weight"] else float("inf") for good in lastgoods]
-                    #dis = [(good["start_x"] - FlyPlane[i]["x"])**2 + (good["start_y"] - FlyPlane[i]["y"])**2 for good in lastgoods]
-                    if not dis:
-                        continue
+                    if not dis or min(dis) == float("inf"):
+                        return FlyPlane
                     min_dis_index = dis.index(min(dis))
-                    #print(lastgoods[min_dis_index]["no"])
                     if goods[min_dis_index]["no"] not in goodshasbeenchoose:
                        goodshasbeenchoose.append(lastgoods[min_dis_index]["no"])
                     x_dis = lastgoods[min_dis_index]["start_x"] - FlyPlane[i]["x"]
@@ -179,6 +179,8 @@ class Algo():
                             continue
                     if x_dis == 0 and y_dis == 0:
                         uavtask.setgoodno(lastgoods[min_dis_index]["no"])
+                        if lastgoods[min_dis_index]["no"] not in self.goodnohasbeendetected:
+                            self.goodnohasbeendetected.append(lastgoods[min_dis_index]["no"])
                         uavtask.setend(lastgoods[min_dis_index]["end_x"],lastgoods[min_dis_index]["end_y"])
                         uavtask.setdowntogetgood(True)
                         uavtask.setgetgoodxy(False)
@@ -204,15 +206,38 @@ class Algo():
                     x_dis = uavtask.getend()[0] - FlyPlane[i]["x"]
                     y_dis = uavtask.getend()[1] - FlyPlane[i]["y"]
                     if x_dis != 0:
-                        FlyPlane[i]["x"] += int(x_dis/(abs(x_dis)))
+                        res = [False if buildsize["x_start"] <= FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))) <= buildsize["x_end"] and \
+                        buildsize["y_start"] <= FlyPlane[i]["y"] <= buildsize["y_end"] and FlyPlane[i]["z"] < buildsize["z_end"] else True for \
+                        buildsize in buildings] 
+                        flag_x = 0  
+                        if False not in res:
+                            temp_flyx = FlyPlane[i]["x"]
+                            FlyPlane[i]["x"] += int(x_dis/(abs(x_dis)))
+                            flag_x = 1
+                        else:
+                            FlyPlane[i]["z"] += 1
+                            uavtask.setclimbbuilding(True)
+                            continue
                     if y_dis != 0:
-                        FlyPlane[i]["y"] += int(y_dis/(abs(y_dis)))
+                        res = [False if buildsize["x_start"] <= FlyPlane[i]["x"]<= buildsize["x_end"] and \
+                              buildsize["y_start"] <= FlyPlane[i]["y"]+int(y_dis/(abs(y_dis))) <= buildsize["y_end"] \
+                              and FlyPlane[i]["z"] <  buildsize["z_end"] else True for buildsize in buildings]
+                        if False not in res:
+                            FlyPlane[i]["y"] += int(y_dis/(abs(y_dis)))
+                        else:
+                            if flag_x:
+                               FlyPlane[i]["z"] += 1
+                               FlyPlane[i]["x"] = temp_flyx
+                            uavtask.setclimbbuilding(True)
+                            continue
                     if x_dis == 0 and y_dis == 0:
                         uavtask.setputgoodxy(False)
                         uavtask.setdowntoputgood(True)
                 elif uavtask.getdowntoputgood():
                     if  FlyPlane[i]["z"] == 0:
                         FlyPlane[i]["goods_no"] = -1
+                        if uavtask.getgoodno() in self.goodnohasbeendetected:
+                            self.goodnohasbeendetected.remove(uavtask.getgoodno())
                         uavtask.setdowntogetgood(False)
                         uavtask.setuptoair(True)
                     else:
@@ -265,7 +290,7 @@ class Algo():
         def toPurchaseUav(self):
             pass
                  
-        print(FlyPlane[2])              
+        print(FlyPlane[3])              
         return FlyPlane
 
 
