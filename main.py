@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py 47.95.243.246 31023 e82e4496-8a3d-489b-b9cc-4b2e689dfd94
+# python main.py 47.95.243.246 30590 e82e4496-8a3d-489b-b9cc-4b2e689dfd94
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -37,7 +37,8 @@ def SendJuderData(hSocket, dict_send):
 
 class task_uav(object):
     def __init__(self):
-        self.uptoair = True
+        self.flyfrompark = True
+        self.flyfromputgood = False
         self.downtogetgood = False
         self.upwithgood = False 
         self.downtoputgood = False
@@ -53,11 +54,15 @@ class task_uav(object):
         self.uavno = no 
     def getuavno(self):
         return self.uavno
-    def setuptoair(self,state):
-        self.uptoair = state 
+    def setflyfrompark(self,state):
+        self.flyfrompark = state 
     #===返回上升状态
-    def getuptoair(self):
-        return self.uptoair
+    def getflyfrompark(self):
+        return self.flyfrompark
+    def setflyfromputgood(self,state):
+        self.flyfromputgood = state 
+    def getflyfromputgood(self):
+        return self.flyfromputgood
     def setgetgoodxy(self,state):
         self.getgoodxy = state
     def getgetgoodxy(self):
@@ -135,28 +140,29 @@ class Algo():
                    uavtask.setuavno(FlyPlane[i]["no"])
                 else:
                    uavtask = self.tasklist[i]
-                if  (FlyPlane[i]["z"]+1) not in z_status and uavtask.getuptoair():
+                if  (FlyPlane[i]["z"]+1) not in z_status and uavtask.getflyfrompark():
                     FlyPlane[i]["z"] += 1
                     z_status[i] += 1
                     if FlyPlane[i]["z"] > flayhlow:
-                        uavtask.setuptoair(False)
+                        uavtask.setflyfrompark(False)
                         uavtask.setgetgoodxy(True)
                 elif uavtask.getgetgoodxy() :
                     z_status[i] = -1
                     dis = [(good["start_x"] - FlyPlane[i]["x"])**2 + (good["start_y"] - FlyPlane[i]["y"])**2 \
-                           if good["weight"]<FlyPlane[i]["load_weight"] else float("inf") for good in lastgoods]
+                           if good["weight"]<=FlyPlane[i]["load_weight"] else float("inf") for good in lastgoods]
                     if not dis or min(dis) == float("inf"):
                         return FlyPlane
                     min_dis_index = dis.index(min(dis))
-                    if goods[min_dis_index]["no"] not in goodshasbeenchoose:
+                    if lastgoods[min_dis_index]["no"] not in goodshasbeenchoose:
                        goodshasbeenchoose.append(lastgoods[min_dis_index]["no"])
                     x_dis = lastgoods[min_dis_index]["start_x"] - FlyPlane[i]["x"]
                     y_dis = lastgoods[min_dis_index]["start_y"] - FlyPlane[i]["y"]
+                    flag_x = 0
                     if x_dis != 0:                     
                         res = [False if buildsize["x_start"] <= FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))) <= buildsize["x_end"] and \
                         buildsize["y_start"] <= FlyPlane[i]["y"] <= buildsize["y_end"] and FlyPlane[i]["z"] < buildsize["z_end"] else True for \
                         buildsize in buildings] 
-                        flag_x = 0  
+                        
                         if False not in res:
                             temp_flyx = FlyPlane[i]["x"]
                             FlyPlane[i]["x"] += int(x_dis/(abs(x_dis)))
@@ -193,7 +199,7 @@ class Algo():
                             uavtask.setupwithgood(True)
                         else:
                             uavtask.setdowntogetgood(False)
-                            uavtask.setuptoair(True)
+                            uavtask.setflyfrompark(True)
                     else:
                         FlyPlane[i]["z"] -= 1
 
@@ -238,10 +244,15 @@ class Algo():
                         FlyPlane[i]["goods_no"] = -1
                         if uavtask.getgoodno() in self.goodnohasbeendetected:
                             self.goodnohasbeendetected.remove(uavtask.getgoodno())
-                        uavtask.setdowntogetgood(False)
-                        uavtask.setuptoair(True)
+                        uavtask.setdowntoputgood(False)
+                        uavtask.setflyfromputgood(True)
                     else:
                         FlyPlane[i]["z"] -= 1
+                elif uavtask.getflyfromputgood():
+                    FlyPlane[i]["z"] += 1
+                    if FlyPlane[i]["z"] > flayhlow:
+                        uavtask.setflyfromputgood(False)
+                        uavtask.setgetgoodxy(True)
                 self.tasklist[i] = uavtask
         #===============================把这些限制条件先放一放=======================
         # #parse mapinfo
@@ -290,7 +301,7 @@ class Algo():
         def toPurchaseUav(self):
             pass
                  
-        print(FlyPlane[3])              
+        print(FlyPlane[0])              
         return FlyPlane
 
 
