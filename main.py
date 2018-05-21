@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py 47.95.243.246 31430 03007105-159b-4027-8edb-dcd8e5c95eeb
+# python main.py 123.56.24.163 30006 e82e4496-8a3d-489b-b9cc-4b2e689dfd94
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -114,9 +114,13 @@ class Algo():
                     "z_start":0,"z_end":buildinfo["h"]}\
                     for buildinfo in a["building"]]
         if b["time"] == 0:
-            FlyPlane = c["astUav"]
+            return c["astUav"]
         else:
             FlyPlane = b["UAV_we"]
+            # 将购买成功的无人机添加到任务列表中，初始化为0
+            len_cha = len(FlyPlane) - len(self.tasklist)
+            if len_cha > 0:
+               self.tasklist.extend([0 for i in range(len_cha)])
             goods = b["goods"]
             # 垂直上升,一架一架的离开，直达所有飞机到达最低高度
             z_status = [sin_z["z"] for sin_z in FlyPlane ]
@@ -127,6 +131,7 @@ class Algo():
                              and good["no"] not in self.goodnohasbeendetected]
                 # 如何处理毁掉的uav,待修改
                 if FlyPlane[i]["status"] == 1:
+                    FlyPlane[i] = 0
                     continue
                 #根据FlyPlane的编号找到相对应的uavtask
                 uavtask = [uav for uav in self.tasklist if uav and uav.getuavno() == FlyPlane[i]["no"]]
@@ -253,30 +258,12 @@ class Algo():
                         FlyPlane[i]["z"] -= 1
                 self.tasklist[i] = uavtask
         #===============================把这些限制条件先放一放=======================
-        # #parse mapinfo
-        # restricts
-
-
         fogs = [{"x_start":foginfo["x"],"x_end":foginfo["x"]+foginfo["l"]-1,\
                 "y_start":foginfo["y"],"y_end":foginfo["y"]+foginfo["w"]-1,
                 "z_start":foginfo["b"],"z_end":foginfo["t"]}\
-                for foginfo in a["fog"]]
-        
-        # 购买uav
-        def toPurchaseUav(self):
-            pass   
-        '''while (len(set([[uav["x"],uav["y"],uav["z"]] for uav in FlyPlane])) != len(FlyPlane)):
-            from collections import defaultdict
-            d = defaultdict(list)
-            for i,uavxyz in enumerate(FlyPlane):
-                d[k].append(va)'''
-
-
-        print(FlyPlane[3])          
-        return FlyPlane
-
-
-
+                for foginfo in a["fog"]] 
+        aviavlePlane = [uav for uav in FlyPlane if uav != 0]    
+        return aviavlePlane
 
 
 def main(szIp, nPort, szToken):
@@ -366,12 +353,26 @@ def main(szIp, nPort, szToken):
         # pstMapInfo 在一场比赛中是固定的，不会变
         # pstMatchStatus 服务器根据用户发送的数据经过处理后返回的信息
         # pstFlayPlane 是用户根据服务器的数据，经过自己的算法计算后得到的作战计划，需要发送给服务器
-        
         FlyPlane = Algo_main.AlgorithmCalculationFun(pstMapInfo, pstMatchStatus, pstFlayPlane)
         FlyPlane_send['UAV_info'] = FlyPlane
+        # 购买uav info
+        #{ "type": "F1", "load_weight": 100, "value": 600 },
+        #{ "type": "F2","load_weight": 50, "value": 350 },
+        #{ "type": "F3","load_weight": 20, "value": 130 },
+        #{ "type": "F4","load_weight": 30, "value": 190 },
+        #{ "type": "F5","load_weight": 360, "value": 1000 }
+        purchaselist = []
+        FlyPlane_send["purchase_UAV"] = []
+        if pstMatchStatus["time"] == 0:
+            wevalue = 0
+        else:
+            wevalue = pstMatchStatus["we_value"]
+        if wevalue > 200:
+           purchaselist.append({"purchase": "F3" })
+        if purchaselist: 
+           FlyPlane_send["purchase_UAV"] = purchaselist
         #==================mxq=====================
         #发送作战路线
-        
         # //发送飞行计划
         nRet = SendJuderData(hSocket, FlyPlane_send)
         if nRet != 0:
