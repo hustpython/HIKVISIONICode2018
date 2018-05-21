@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py 47.95.243.246 31894 03007105-159b-4027-8edb-dcd8e5c95eeb
+# python main.py 47.95.243.246 31430 03007105-159b-4027-8edb-dcd8e5c95eeb
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -153,6 +153,7 @@ class Algo():
                        goodshasbeenchoose.append(lastgoods[min_dis_index]["no"])
                     x_dis = lastgoods[min_dis_index]["start_x"] - FlyPlane[i]["x"]
                     y_dis = lastgoods[min_dis_index]["start_y"] - FlyPlane[i]["y"]
+                    temp_flyx = FlyPlane[i]["x"]
                     flag_x = 0
                     if x_dis != 0:                     
                         res = [False if buildsize["x_start"] <= FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))) <= buildsize["x_end"] and \
@@ -176,7 +177,7 @@ class Algo():
                             FlyPlane[i]["y"] += int(y_dis/(abs(y_dis)))
                             xyz_status[i] = [FlyPlane[i]["x"],FlyPlane[i]["y"],FlyPlane[i]["z"]]
                         else:
-                            if flag_x:
+                            if flag_x or x_dis == 0:
                                FlyPlane[i]["z"] += 1
                                FlyPlane[i]["x"] = temp_flyx
                                xyz_status[i] = [FlyPlane[i]["x"],FlyPlane[i]["y"],FlyPlane[i]["z"]]
@@ -210,13 +211,13 @@ class Algo():
                 elif uavtask.getputgoodxy():
                     x_dis = uavtask.getend()[0] - FlyPlane[i]["x"]
                     y_dis = uavtask.getend()[1] - FlyPlane[i]["y"]
+                    temp_flyx = FlyPlane[i]["x"]
                     flag_x = 0
                     if x_dis != 0:                     
                         res = [False if buildsize["x_start"] <= FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))) <= buildsize["x_end"] and \
                         buildsize["y_start"] <= FlyPlane[i]["y"] <= buildsize["y_end"] and FlyPlane[i]["z"] < buildsize["z_end"] else True for \
                         buildsize in buildings] 
                         if False not in res and ([FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))),FlyPlane[i]["y"],FlyPlane[i]["z"]] not in xyz_status):
-                            temp_flyx = FlyPlane[i]["x"]
                             FlyPlane[i]["x"] += int(x_dis/(abs(x_dis)))
                             flag_x = 1
                             xyz_status[i] = [FlyPlane[i]["x"],FlyPlane[i]["y"],FlyPlane[i]["z"]]
@@ -233,7 +234,7 @@ class Algo():
                             FlyPlane[i]["y"] += int(y_dis/(abs(y_dis)))
                             xyz_status[i] = [FlyPlane[i]["x"],FlyPlane[i]["y"],FlyPlane[i]["z"]]
                         else:
-                            if flag_x:
+                            if flag_x or x_dis == 0:
                                FlyPlane[i]["z"] += 1
                                FlyPlane[i]["x"] = temp_flyx
                                xyz_status[i] = [FlyPlane[i]["x"],FlyPlane[i]["y"],FlyPlane[i]["z"]]
@@ -271,7 +272,7 @@ class Algo():
                 d[k].append(va)'''
 
 
-        print(FlyPlane[2])          
+        print(FlyPlane[3])          
         return FlyPlane
 
 
