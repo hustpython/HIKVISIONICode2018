@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py 123.56.24.163 30006 e82e4496-8a3d-489b-b9cc-4b2e689dfd94
+# python main.py 39.105.69.236 32616 03007105-159b-4027-8edb-dcd8e5c95eeb
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -109,6 +109,11 @@ class Algo():
         flayhlow = a["h_low"]
         flayhhight = a["h_high"]
         goodshasbeenchoose = []
+        #===============================一些限制条件=======================
+        fogs = [{"x_start":foginfo["x"],"x_end":foginfo["x"]+foginfo["l"]-1,\
+                "y_start":foginfo["y"],"y_end":foginfo["y"]+foginfo["w"]-1,
+                "z_start":foginfo["b"],"z_end":foginfo["t"]}\
+                for foginfo in a["fog"]]
         buildings = [{"x_start":buildinfo["x"],"x_end":buildinfo["x"]+buildinfo["l"],\
                     "y_start":buildinfo["y"],"y_end":buildinfo["y"]+buildinfo["w"],
                     "z_start":0,"z_end":buildinfo["h"]}\
@@ -128,7 +133,7 @@ class Algo():
             xyz_status = [[uavxy["x"],uavxy["y"],uavxy["z"]] for uavxy in FlyPlane]
             for i,_ in enumerate(FlyPlane):
                 lastgoods = [good for good in goods if good["no"] not in goodshasbeenchoose \
-                             and good["no"] not in self.goodnohasbeendetected]
+                             and good["no"] not in self.goodnohasbeendetected and good["status"] == 0]
                 # 如何处理毁掉的uav,待修改
                 if FlyPlane[i]["status"] == 1:
                     FlyPlane[i] = 0
@@ -148,7 +153,7 @@ class Algo():
                         uavtask.setupwithnogood(False)
                         uavtask.setgetgoodxy(True)
                 elif uavtask.getgetgoodxy() :
-                    dis = [(good["start_x"] - FlyPlane[i]["x"])**2 + (good["start_y"] - FlyPlane[i]["y"])**2 \
+                    dis = [(good["start_x"] - FlyPlane[i]["x"])**2 + (good["start_y"] - FlyPlane[i]["y"])**2 + (FlyPlane[i]["z"])**2\
                            if good["weight"]<=FlyPlane[i]["load_weight"] else float("inf") for good in lastgoods]
                     if not dis or min(dis) == float("inf"):
                         continue
@@ -169,7 +174,7 @@ class Algo():
                             FlyPlane[i]["x"] += int(x_dis/(abs(x_dis)))
                             flag_x = 1
                             xyz_status[i] = [FlyPlane[i]["x"],FlyPlane[i]["y"],FlyPlane[i]["z"]]
-                        else:
+                        elif FlyPlane[i]["z"] + 1 < flayhhight:
                             FlyPlane[i]["z"] += 1
                             xyz_status[i] = [FlyPlane[i]["x"],FlyPlane[i]["y"],FlyPlane[i]["z"]]
                             uavtask.setclimbbuilding(True)
@@ -189,13 +194,16 @@ class Algo():
                             uavtask.setclimbbuilding(True)
                             continue
                     if x_dis == 0 and y_dis == 0:
-                        uavtask.setgoodno(lastgoods[min_dis_index]["no"])
                         if lastgoods[min_dis_index]["no"] not in self.goodnohasbeendetected:
                             self.goodnohasbeendetected.append(lastgoods[min_dis_index]["no"])
                         uavtask.setend(lastgoods[min_dis_index]["end_x"],lastgoods[min_dis_index]["end_y"])
-                        uavtask.setdowntogetgood(True)
-                        uavtask.setgetgoodxy(False)
-                        FlyPlane[i]["z"] -= 1
+                        if  lastgoods[min_dis_index]["remain_time"] >= FlyPlane[i]["z"]:
+                            uavtask.setgoodno(lastgoods[min_dis_index]["no"])
+                            uavtask.setdowntogetgood(True)
+                            uavtask.setgetgoodxy(False)
+                            FlyPlane[i]["z"] -= 1
+                        else:
+                            continue
                 elif uavtask.getdowntogetgood():
                     if  FlyPlane[i]["z"] == 0 :
                         if uavtask.getgoodno() in [good["no"] for good in goods]:
@@ -226,7 +234,7 @@ class Algo():
                             FlyPlane[i]["x"] += int(x_dis/(abs(x_dis)))
                             flag_x = 1
                             xyz_status[i] = [FlyPlane[i]["x"],FlyPlane[i]["y"],FlyPlane[i]["z"]]
-                        else:
+                        elif FlyPlane[i]["z"] + 1 < flayhhight:
                             FlyPlane[i]["z"] += 1
                             xyz_status[i] = [FlyPlane[i]["x"],FlyPlane[i]["y"],FlyPlane[i]["z"]]
                             uavtask.setclimbbuilding(True)
@@ -256,13 +264,9 @@ class Algo():
                         uavtask.setupwithnogood(True)
                     else:
                         FlyPlane[i]["z"] -= 1
-                self.tasklist[i] = uavtask
-        #===============================把这些限制条件先放一放=======================
-        fogs = [{"x_start":foginfo["x"],"x_end":foginfo["x"]+foginfo["l"]-1,\
-                "y_start":foginfo["y"],"y_end":foginfo["y"]+foginfo["w"]-1,
-                "z_start":foginfo["b"],"z_end":foginfo["t"]}\
-                for foginfo in a["fog"]] 
-        aviavlePlane = [uav for uav in FlyPlane if uav != 0]    
+                self.tasklist[i] = uavtask 
+        aviavlePlane = [uav for uav in FlyPlane if uav != 0]  
+        #print(aviavlePlane[0])  
         return aviavlePlane
 
 
@@ -355,6 +359,7 @@ def main(szIp, nPort, szToken):
         # pstFlayPlane 是用户根据服务器的数据，经过自己的算法计算后得到的作战计划，需要发送给服务器
         FlyPlane = Algo_main.AlgorithmCalculationFun(pstMapInfo, pstMatchStatus, pstFlayPlane)
         FlyPlane_send['UAV_info'] = FlyPlane
+        print(pstMatchStatus["time"])
         # 购买uav info
         #{ "type": "F1", "load_weight": 100, "value": 600 },
         #{ "type": "F2","load_weight": 50, "value": 350 },
@@ -367,7 +372,7 @@ def main(szIp, nPort, szToken):
             wevalue = 0
         else:
             wevalue = pstMatchStatus["we_value"]
-        if wevalue > 200:
+        if wevalue > 200000:
            purchaselist.append({"purchase": "F3" })
         if purchaselist: 
            FlyPlane_send["purchase_UAV"] = purchaselist
