@@ -41,7 +41,6 @@ class task_uav(object):
         self.downtogetgood = False
         self.upwithgood = False 
         self.downtoputgood = False
-        self.climbbuilding = False
         self.getgoodxy = False
         self.putgoodxy = False
         self.end_x = -1
@@ -78,10 +77,6 @@ class task_uav(object):
     #===返回与物品上升状态
     def getupwithgood(self):
         return self.upwithgood 
-    def setclimbbuilding(self,state):
-        self.climbbuilding = state 
-    def getclimbbuilding(self):
-        return self.climbbuilding
     #===到达目的地上方请求下降
     def setdowntoputgood(self,state):
         self.downtoputgood = state 
@@ -145,7 +140,7 @@ class Algo():
                 else:
                     uavtask = task_uav()
                     uavtask.setuavno(FlyPlane[i]["no"])
-
+                # 初始化时爬升到最地高度
                 if uavtask.getupwithnogood() and ((FlyPlane[i]["z"]+1) not in z_status or (FlyPlane[i]["x"] != a["parking"]["x"] or FlyPlane[i]["y"] != a["parking"]["y"])) :
                     FlyPlane[i]["z"] += 1
                     z_status[i] += 1
@@ -177,7 +172,6 @@ class Algo():
                         elif FlyPlane[i]["z"] + 1 < flayhhight:
                             FlyPlane[i]["z"] += 1
                             xyz_status[i] = [FlyPlane[i]["x"],FlyPlane[i]["y"],FlyPlane[i]["z"]]
-                            uavtask.setclimbbuilding(True)
                             continue
                     if y_dis != 0:
                         res = [False if buildsize["x_start"] <= FlyPlane[i]["x"]<= buildsize["x_end"] and \
@@ -191,19 +185,16 @@ class Algo():
                                FlyPlane[i]["z"] += 1
                                FlyPlane[i]["x"] = temp_flyx
                                xyz_status[i] = [FlyPlane[i]["x"],FlyPlane[i]["y"],FlyPlane[i]["z"]]
-                            uavtask.setclimbbuilding(True)
                             continue
                     if x_dis == 0 and y_dis == 0:
                         if lastgoods[min_dis_index]["no"] not in self.goodnohasbeendetected:
                             self.goodnohasbeendetected.append(lastgoods[min_dis_index]["no"])
-                        uavtask.setend(lastgoods[min_dis_index]["end_x"],lastgoods[min_dis_index]["end_y"])
                         if  lastgoods[min_dis_index]["remain_time"] >= FlyPlane[i]["z"]:
+                            uavtask.setend(lastgoods[min_dis_index]["end_x"],lastgoods[min_dis_index]["end_y"])
                             uavtask.setgoodno(lastgoods[min_dis_index]["no"])
                             uavtask.setdowntogetgood(True)
                             uavtask.setgetgoodxy(False)
                             FlyPlane[i]["z"] -= 1
-                        else:
-                            continue
                 elif uavtask.getdowntogetgood():
                     if  FlyPlane[i]["z"] == 0 :
                         if uavtask.getgoodno() in [good["no"] for good in goods]:
@@ -237,7 +228,6 @@ class Algo():
                         elif FlyPlane[i]["z"] + 1 < flayhhight:
                             FlyPlane[i]["z"] += 1
                             xyz_status[i] = [FlyPlane[i]["x"],FlyPlane[i]["y"],FlyPlane[i]["z"]]
-                            uavtask.setclimbbuilding(True)
                             continue
                     if y_dis != 0:
                         res = [False if buildsize["x_start"] <= FlyPlane[i]["x"]<= buildsize["x_end"] and \
@@ -251,7 +241,6 @@ class Algo():
                                FlyPlane[i]["z"] += 1
                                FlyPlane[i]["x"] = temp_flyx
                                xyz_status[i] = [FlyPlane[i]["x"],FlyPlane[i]["y"],FlyPlane[i]["z"]]
-                            uavtask.setclimbbuilding(True)
                             continue
                     if x_dis == 0 and y_dis == 0:
                         uavtask.setputgoodxy(False)
