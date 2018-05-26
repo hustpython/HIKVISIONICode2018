@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py  39.105.71.189 31015 5794bcdc-d007-4814-bd73-11ec8bd3fe97
+# python main.py  47.95.243.246 30946 1a2a8003-1f19-441c-bc2a-8a0bfe6f7c53
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -460,13 +460,13 @@ def main(szIp, nPort, szToken):
             enemyaviable = [enemy for enemy in  pstMatchStatus["UAV_enemy"] if enemy["status"] != 0]
         if (len(FlyPlane) <=2 and wevalue >= 600):
             purchaselist.append({"purchase":"F2"})
-        elif (wevalue >= 600 and avatypes.count("F1") <=2):
+        elif (wevalue >= 600 and avatypes.count("F1") <=1):
             purchaselist.append({"purchase":"F1"})
-        elif (wevalue >= 1000 and avatypes.count("F5") <= 2):
+        elif (wevalue >= 1000 and avatypes.count("F5") <= 1):
             purchaselist.append({"purchase":"F5"})
         elif (len(enemyaviable) <= 2 and wevalue >= 130 and avatypes.count("F3") <=1):
             purchaselist.append({"purchase":"F3"})
-        elif (wevalue >= 200 and avatypes.count("F3") <=1):
+        elif (wevalue >= 200 and avatypes.count("F3") <= len(enemyaviable)):
             purchaselist.append({"purchase":"F3"})
 
         if purchaselist: 
