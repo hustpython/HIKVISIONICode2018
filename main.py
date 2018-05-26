@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py  123.56.24.163 31487 1a2a8003-1f19-441c-bc2a-8a0bfe6f7c53
+# python main.py  39.105.71.189 31015 5794bcdc-d007-4814-bd73-11ec8bd3fe97
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -120,12 +120,13 @@ class Algo():
         x_dis = self.uavenemy[min_index]["x"] - self.FlyPlane[i]["x"]
         y_dis = self.uavenemy[min_index]["y"] - self.FlyPlane[i]["y"]
         z_dis = self.uavenemy[min_index]["z"] - self.FlyPlane[i]["z"]
+        flag_x = 0
+        temp_flyx = self.FlyPlane[i]["x"]
         if x_dis != 0:                     
             res = [False if buildsize["x_start"] <= self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))) <= buildsize["x_end"] and \
             buildsize["y_start"] <= self.FlyPlane[i]["y"] <= buildsize["y_end"] and self.FlyPlane[i]["z"] < buildsize["z_end"] else True for \
             buildsize in self.buildings] 
             if False not in res and ([self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))),self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]] not in self.xyz_status):
-                temp_flyx = self.FlyPlane[i]["x"]
                 self.FlyPlane[i]["x"] += int(x_dis/(abs(x_dis)))
                 flag_x = 1
                 self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
@@ -260,7 +261,6 @@ class Algo():
                         buildsize["y_start"] <= self.FlyPlane[i]["y"] <= buildsize["y_end"] and self.FlyPlane[i]["z"] < buildsize["z_end"] else True for \
                         buildsize in self.buildings] 
                         if False not in res and ([self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))),self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]] not in self.xyz_status):
-                            temp_flyx = self.FlyPlane[i]["x"]
                             self.FlyPlane[i]["x"] += int(x_dis/(abs(x_dis)))
                             flag_x = 1
                             self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
@@ -453,16 +453,21 @@ def main(szIp, nPort, szToken):
         purchaselist = []
         FlyPlane_send["purchase_UAV"] = []
         if pstMatchStatus["time"] == 0:
+            enemyaviable = []
             wevalue = 0
         else:
             wevalue = pstMatchStatus["we_value"]
-
+            enemyaviable = [enemy for enemy in  pstMatchStatus["UAV_enemy"] if enemy["status"] != 0]
         if (len(FlyPlane) <=2 and wevalue >= 600):
             purchaselist.append({"purchase":"F2"})
         elif (wevalue >= 600 and avatypes.count("F1") <=2):
             purchaselist.append({"purchase":"F1"})
         elif (wevalue >= 1000 and avatypes.count("F5") <= 2):
             purchaselist.append({"purchase":"F5"})
+        elif (len(enemyaviable) <= 2 and wevalue >= 130 and avatypes.count("F3") <=1):
+            purchaselist.append({"purchase":"F3"})
+        elif (wevalue >= 200 and avatypes.count("F3") <=1):
+            purchaselist.append({"purchase":"F3"})
 
         if purchaselist: 
            FlyPlane_send["purchase_UAV"] = purchaselist
