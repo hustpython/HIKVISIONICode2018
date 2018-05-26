@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py  47.95.243.246 30338 1a2a8003-1f19-441c-bc2a-8a0bfe6f7c53
+# python main.py  123.56.24.163 31487 1a2a8003-1f19-441c-bc2a-8a0bfe6f7c53
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -105,6 +105,7 @@ class Algo():
     def __init__(self):
         self.tasklist = [0,0,0,0,0,0]
         self.goodnohasbeendetected = []
+        self.enemygoodno = []
     def MovetoAttack(self,i):
         dis_we_enemy = [(enemy["x"] - self.FlyPlane[i]["x"])**2 + (enemy["y"] - self.FlyPlane[i]["y"])**2 \
                         + (enemy["z"] - self.FlyPlane[i]["z"])**2 if self.FlyPlane[i]["load_weight"]<enemy["load_weight"]\
@@ -185,10 +186,13 @@ class Algo():
             # 垂直上升,一架一架的离开，直达所有飞机到达最低高度
             z_status = [sin_z["z"] if(sin_z["x"]==parking_x and sin_z["y"]==parking_y and sin_z["z"]<=self.flayhlow) else -1 for sin_z in self.FlyPlane ]
             self.xyz_status = [[uavxy["x"],uavxy["y"],uavxy["z"]] for uavxy in self.FlyPlane]
+            for enemy in self.uavenemy:
+                if enemy["goods_no"] != -1 and enemy["goods_no"] not in self.enemygoodno:
+                    self.enemygoodno.append(enemy["goods_no"])
             for i,_ in enumerate(self.FlyPlane):
                 lastgoods = [good for good in goods if good["no"] not in goodshasbeenchoose \
-                             and good["no"] not in self.goodnohasbeendetected and good["status"] == 0]
-                lastenemy = [enemy for enemy in self.uavenemy if enemy["no"] not in self.enemyhasbeenchoose and enemy["status"] != 1]
+                             and good["no"] not in self.goodnohasbeendetected and good["status"] == 0 and good["no"] not in self.enemygoodno]
+                lastenemy = [enemy for enemy in self.uavenemy if enemy["no"] not in self.enemyhasbeenchoose and enemy["status"] != 1] 
                 # 如何处理毁掉的uav,待修改
                 if self.FlyPlane[i]["status"] == 1:
                     self.FlyPlane[i] = 0
