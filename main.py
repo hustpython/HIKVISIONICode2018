@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py  47.95.243.246 30428 1a2a8003-1f19-441c-bc2a-8a0bfe6f7c53
+# python main.py  47.95.243.246 32048 5794bcdc-d007-4814-bd73-11ec8bd3fe97
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -124,6 +124,9 @@ class Algo():
         z_dis = self.uavenemy[min_index]["z"] - self.FlyPlane[i]["z"]
         flag_x = 0
         temp_flyx = self.FlyPlane[i]["x"]
+        if (x_dis != 0 or y_dis !=0) and self.FlyPlane[i]["z"] <= self.flayhlow:
+            self.FlyPlane[i]["z"] += 1
+            return
         if x_dis != 0 and self.FlyPlane[i]["z"] > self.flayhlow:                     
             res = [False if buildsize["x_start"] <= self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))) <= buildsize["x_end"] and \
             buildsize["y_start"] <= self.FlyPlane[i]["y"] <= buildsize["y_end"] and self.FlyPlane[i]["z"] < buildsize["z_end"] else True for \
