@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py  47.95.243.246 30946 1a2a8003-1f19-441c-bc2a-8a0bfe6f7c53
+# python main.py  123.56.24.163 32006 3b7ffe2e-0e3e-4f60-9e9a-01f2fe25149a
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -213,6 +213,9 @@ class Algo():
                         uavtask.setupwithnogood(False)
                         uavtask.setgetgoodxy(True)
                 elif uavtask.getgetgoodxy() :
+                    if(self.FlyPlane[i]["z"]<=self.flayhlow):
+                        self.FlyPlane[i]["z"] += 1
+                        continue
                     dis = [(good["start_x"] - self.FlyPlane[i]["x"])**2 + (good["start_y"] - self.FlyPlane[i]["y"])**2 + (self.FlyPlane[i]["z"])**2\
                            if good["weight"]<=self.FlyPlane[i]["load_weight"] else float("inf") for good in lastgoods]
                     #dis = [good["weight"] if good["weight"]<=self.FlyPlane[i]["load_weight"] else -float("inf") for good in lastgoods]
