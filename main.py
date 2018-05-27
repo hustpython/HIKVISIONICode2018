@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py  123.56.24.163 32006 3b7ffe2e-0e3e-4f60-9e9a-01f2fe25149a
+# python main.py  47.95.243.246 30428 1a2a8003-1f19-441c-bc2a-8a0bfe6f7c53
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -113,6 +113,8 @@ class Algo():
         # 如果敌军只有最后一架飞机则一个选择一个与其价值相当的无人机继续撞击任务
 
         if not dis_we_enemy or min(dis_we_enemy) == float("inf"):
+            if self.FlyPlane[i]["z"] <= self.flayhlow:
+                self.FlyPlane[i]["z"] += 1
             return
         min_index = dis_we_enemy.index(min(dis_we_enemy))
         if self.uavenemy[min_index]["no"] not in self.enemyhasbeenchoose:
@@ -122,7 +124,7 @@ class Algo():
         z_dis = self.uavenemy[min_index]["z"] - self.FlyPlane[i]["z"]
         flag_x = 0
         temp_flyx = self.FlyPlane[i]["x"]
-        if x_dis != 0:                     
+        if x_dis != 0 and self.FlyPlane[i]["z"] > self.flayhlow:                     
             res = [False if buildsize["x_start"] <= self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))) <= buildsize["x_end"] and \
             buildsize["y_start"] <= self.FlyPlane[i]["y"] <= buildsize["y_end"] and self.FlyPlane[i]["z"] < buildsize["z_end"] else True for \
             buildsize in self.buildings] 
@@ -134,7 +136,7 @@ class Algo():
                 self.FlyPlane[i]["z"] += 1
                 self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
                 return
-        if y_dis != 0:
+        if y_dis != 0 and self.FlyPlane[i]["z"] > self.flayhlow:
             res = [False if buildsize["x_start"] <= self.FlyPlane[i]["x"]<= buildsize["x_end"] and \
                     buildsize["y_start"] <= self.FlyPlane[i]["y"]+int(y_dis/(abs(y_dis))) <= buildsize["y_end"] \
                     and self.FlyPlane[i]["z"] <  buildsize["z_end"] else True for buildsize in self.buildings]
@@ -213,9 +215,6 @@ class Algo():
                         uavtask.setupwithnogood(False)
                         uavtask.setgetgoodxy(True)
                 elif uavtask.getgetgoodxy() :
-                    if(self.FlyPlane[i]["z"]<=self.flayhlow):
-                        self.FlyPlane[i]["z"] += 1
-                        continue
                     dis = [(good["start_x"] - self.FlyPlane[i]["x"])**2 + (good["start_y"] - self.FlyPlane[i]["y"])**2 + (self.FlyPlane[i]["z"])**2\
                            if good["weight"]<=self.FlyPlane[i]["load_weight"] else float("inf") for good in lastgoods]
                     #dis = [good["weight"] if good["weight"]<=self.FlyPlane[i]["load_weight"] else -float("inf") for good in lastgoods]
@@ -259,7 +258,7 @@ class Algo():
                     y_dis = lastgoods[min_dis_index]["start_y"] - self.FlyPlane[i]["y"]
                     temp_flyx = self.FlyPlane[i]["x"]
                     flag_x = 0
-                    if x_dis != 0:                     
+                    if x_dis != 0 and self.FlyPlane[i]["z"] > self.flayhlow:                     
                         res = [False if buildsize["x_start"] <= self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))) <= buildsize["x_end"] and \
                         buildsize["y_start"] <= self.FlyPlane[i]["y"] <= buildsize["y_end"] and self.FlyPlane[i]["z"] < buildsize["z_end"] else True for \
                         buildsize in self.buildings] 
@@ -271,7 +270,7 @@ class Algo():
                             self.FlyPlane[i]["z"] += 1
                             self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
                             continue
-                    if y_dis != 0:
+                    if y_dis != 0 and self.FlyPlane[i]["z"] > self.flayhlow:
                         res = [False if buildsize["x_start"] <= self.FlyPlane[i]["x"]<= buildsize["x_end"] and \
                               buildsize["y_start"] <= self.FlyPlane[i]["y"]+int(y_dis/(abs(y_dis))) <= buildsize["y_end"] \
                               and self.FlyPlane[i]["z"] <  buildsize["z_end"] else True for buildsize in self.buildings]
