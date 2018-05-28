@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py  47.95.243.246 31104 1a2a8003-1f19-441c-bc2a-8a0bfe6f7c53
+# python main.py  47.95.243.246 30292 1a2a8003-1f19-441c-bc2a-8a0bfe6f7c53
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -218,8 +218,8 @@ class Algo():
                         uavtask.setupwithnogood(False)
                         uavtask.setgetgoodxy(True)
                 elif uavtask.getgetgoodxy() :
-                    dis = [(good["start_x"] - self.FlyPlane[i]["x"])**2 + (good["start_y"] - self.FlyPlane[i]["y"])**2 + (self.FlyPlane[i]["z"])**2\
-                           if good["weight"]<=self.FlyPlane[i]["load_weight"] else float("inf") for good in lastgoods]
+                    #dis = [(good["start_x"] - self.FlyPlane[i]["x"])**2 + (good["start_y"] - self.FlyPlane[i]["y"])**2 + (self.FlyPlane[i]["z"])**2\
+                           #if good["weight"]<=self.FlyPlane[i]["load_weight"] else float("inf") for good in lastgoods]
                     dis = [(good["start_x"] - self.FlyPlane[i]["x"])**2 + (good["end_x"] - good["start_x"])**2 +\
                            (good["start_y"] - self.FlyPlane[i]["y"])**2 + (good["end_y"] - good["start_y"])**2 +\
                            (self.FlyPlane[i]["z"])**2 - good["value"]\
@@ -229,19 +229,23 @@ class Algo():
                     #if not dis or max(dis) == -float("inf"):
                     if not dis or min(dis) == float("inf"):
                         if self.FlyPlane[i]["x"] == parking_x and self.FlyPlane[i]["y"] == parking_y:
-                            if 0 <= self.FlyPlane[i]["x"] + 1 < map_x and ([self.FlyPlane[i]["x"] + 1,self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]] not in self.xyz_status):
+                            if (0 <= self.FlyPlane[i]["x"] + 1 < map_x) and ([self.FlyPlane[i]["x"] + 1,self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]] not in self.xyz_status)\
+                            and (self.FlyPlane[i]["z"] > self.flayhlow):
                                 self.FlyPlane[i]["x"] += 1
                                 z_status[i] = -1
                                 self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
-                            elif 0 <= self.FlyPlane[i]["x"] - 1 < map_x and ([self.FlyPlane[i]["x"] - 1,self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]] not in self.xyz_status):
+                            elif (0 <= self.FlyPlane[i]["x"] - 1 < map_x) and ([self.FlyPlane[i]["x"] - 1,self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]] not in self.xyz_status)\
+                            and (self.FlyPlane[i]["z"] > self.flayhlow):
                                 self.FlyPlane[i]["x"] -= 1
                                 z_status[i] = -1
                                 self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
-                            elif 0 <= self.FlyPlane[i]["y"] + 1 < map_y and ([self.FlyPlane[i]["x"],self.FlyPlane[i]["y"]+1,self.FlyPlane[i]["z"]] not in self.xyz_status):
+                            elif (0 <= self.FlyPlane[i]["y"] + 1 < map_y) and ([self.FlyPlane[i]["x"],self.FlyPlane[i]["y"]+1,self.FlyPlane[i]["z"]] not in self.xyz_status)\
+                            and (self.FlyPlane[i]["z"] > self.flayhlow):
                                 self.FlyPlane[i]["y"] += 1
                                 z_status[i] = -1
                                 self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
-                            elif 0 <= self.FlyPlane[i]["y"] - 1 < map_y and ([self.FlyPlane[i]["x"],self.FlyPlane[i]["y"]-1,self.FlyPlane[i]["z"]] not in self.xyz_status):
+                            elif (0 <= self.FlyPlane[i]["y"] - 1 < map_y) and ([self.FlyPlane[i]["x"],self.FlyPlane[i]["y"]-1,self.FlyPlane[i]["z"]] not in self.xyz_status)\
+                            and (self.FlyPlane[i]["z"] > self.flayhlow):
                                 self.FlyPlane[i]["y"] -= 1
                                 z_status[i] = -1
                                 self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
