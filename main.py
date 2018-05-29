@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py  47.95.243.246 30292 1a2a8003-1f19-441c-bc2a-8a0bfe6f7c53
+# python main.py  39.105.71.189 30646 1a2a8003-1f19-441c-bc2a-8a0bfe6f7c53
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -111,7 +111,6 @@ class Algo():
                         + (enemy["z"] - self.FlyPlane[i]["z"])**2 if self.FlyPlane[i]["load_weight"]<enemy["load_weight"]\
                         else float("inf") for enemy in self.uavenemy]
         # 如果敌军只有最后一架飞机则一个选择一个与其价值相当的无人机继续撞击任务
-
         if not dis_we_enemy or min(dis_we_enemy) == float("inf"):
             if self.FlyPlane[i]["z"] <= self.flayhlow:
                 self.FlyPlane[i]["z"] += 1
@@ -445,6 +444,11 @@ def main(szIp, nPort, szToken):
         pstFlayPlane["astUav"].append(pstMapInfo["init_UAV"][i])
 
     # // 根据服务器指令，不停的接受发送数据
+    uavprice = pstMapInfo["UAV_price"]
+    uavpridict = {}
+    for singleuav in uavprice:
+        uavpridict[singleuav["type"]] = singleuav["value"]
+    F1pri,F2pri,F3pri,F4pri,F5pri = uavpridict["F1"],uavpridict["F2"],uavpridict["F3"],uavpridict["F4"],uavpridict["F5"]
     Algo_main = Algo()
     while True:
 
@@ -457,11 +461,11 @@ def main(szIp, nPort, szToken):
         FlyPlane_send['UAV_info'] = FlyPlane
         print("current time:",pstMatchStatus["time"])
         # 购买uav info
-        #{ "type": "F1", "load_weight": 100, "value": 600 },
-        #{ "type": "F2","load_weight": 50, "value": 350 },
-        #{ "type": "F3","load_weight": 20, "value": 130 },
-        #{ "type": "F4","load_weight": 30, "value": 190 },
-        #{ "type": "F5","load_weight": 360, "value": 1000 }
+        #{ "type": "F1", "load_weight": 100, "value": 600 },uavpricelist[0]
+        #{ "type": "F2","load_weight": 50, "value": 350 },uavpricelist[1]
+        #{ "type": "F3","load_weight": 20, "value": 130 },uavpricelist[2]
+        #{ "type": "F4","load_weight": 30, "value": 190 },uavpricelist[3]
+        #{ "type": "F5","load_weight": 360, "value": 1000 },uavpricelist[4]
         avatypes = [uav["type"] for uav in FlyPlane]
         purchaselist = []
         FlyPlane_send["purchase_UAV"] = []
@@ -471,15 +475,15 @@ def main(szIp, nPort, szToken):
         else:
             wevalue = pstMatchStatus["we_value"]
             enemyaviable = [enemy for enemy in  pstMatchStatus["UAV_enemy"] if enemy["status"] != 0]
-        if (len(FlyPlane) <=2 and wevalue >= 600):
-            purchaselist.append({"purchase":"F2"})
-        elif (wevalue >= 600 and avatypes.count("F1") <=1):
-            purchaselist.append({"purchase":"F1"})
-        elif (wevalue >= 1000 and avatypes.count("F5") <= 1):
-            purchaselist.append({"purchase":"F5"})
-        elif (len(enemyaviable) <= 2 and wevalue >= 130 and avatypes.count("F3") <=1):
+        if (len(FlyPlane) <=2 and wevalue >= F3pri):
             purchaselist.append({"purchase":"F3"})
-        elif (wevalue >= 200 and avatypes.count("F3") <= len(enemyaviable)):
+        elif (wevalue >= F1pri and avatypes.count("F1") <=1):
+            purchaselist.append({"purchase":"F1"})
+        elif (wevalue >= F5pri and avatypes.count("F5") <= 1):
+            purchaselist.append({"purchase":"F5"})
+        elif (len(enemyaviable) <= 2 and wevalue >= F3pri and avatypes.count("F3") <=1):
+            purchaselist.append({"purchase":"F3"})
+        elif (wevalue >= F3pri and avatypes.count("F3") <= len(enemyaviable)):
             purchaselist.append({"purchase":"F3"})
 
         if purchaselist: 
