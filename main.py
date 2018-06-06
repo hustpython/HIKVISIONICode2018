@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py  47.95.243.246 31904 31f565a3-33a1-49aa-a5b7-8c5e5f35ecfb
+# python main.py 123.56.15.18 30826 e0970bac-18b7-4595-839e-034c6ec15b05
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -228,7 +228,7 @@ class Algo():
                     uavtask = task_uav()
                     uavtask.setuavno(self.FlyPlane[i]["no"])
                 # 如果无人机的状态为需要充电并且无人机当前位置在停机坪则进行充电
-                if uavtask.getcharge() and (self.FlyPlane[i]["x"] == 0 and self.FlyPlane[i]["x"] == parking_x and self.FlyPlane[i]["y"] == parking_y):
+                if uavtask.getcharge() and (self.FlyPlane[i]["z"] == 0 and self.FlyPlane[i]["x"] == parking_x and self.FlyPlane[i]["y"] == parking_y):
                     type = self.FlyPlane[i]["type"]
                     chargespeed = self.chargeinfo[type][1]
                     capacity = self.chargeinfo[type][0]
@@ -239,7 +239,7 @@ class Algo():
                     elif self.FlyPlane[i]["remain_electricity"] + chargespeed >= capacity:
                         self.FlyPlane[i]["remain_electricity"] = capacity
                         uavtask.setcharge(False)
-                        uavtask.setupwithnogood(True)                            
+                        uavtask.setupwithnogood(True)                     
                 # 充电完毕飞到最低高度
                 elif uavtask.getupwithnogood() and ((self.FlyPlane[i]["z"]+1) not in z_status or (self.FlyPlane[i]["x"] != parking_x or self.FlyPlane[i]["y"] != parking_y)) :
                     self.FlyPlane[i]["z"] += 1
