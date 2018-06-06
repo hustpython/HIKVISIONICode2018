@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py  47.95.243.246 30489 31f565a3-33a1-49aa-a5b7-8c5e5f35ecfb
+# python main.py  47.95.243.246 31904 31f565a3-33a1-49aa-a5b7-8c5e5f35ecfb
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -234,9 +234,9 @@ class Algo():
                     capacity = self.chargeinfo[type][0]
                     # 充电至最大容量还是充到够货物?
                     # 若中途结束充电状态:self.FlyPlane[i]["status"] = 0
-                    if self.FlyPlane[i]["remain_electricity"] + chargespeed <= capacity:
+                    if self.FlyPlane[i]["remain_electricity"] + chargespeed < capacity:
                         self.FlyPlane[i]["remain_electricity"] += chargespeed 
-                    elif self.FlyPlane[i]["remain_electricity"] + chargespeed > capacity:
+                    elif self.FlyPlane[i]["remain_electricity"] + chargespeed >= capacity:
                         self.FlyPlane[i]["remain_electricity"] = capacity
                         uavtask.setcharge(False)
                         uavtask.setupwithnogood(True)                            
