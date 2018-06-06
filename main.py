@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py 59.110.142.4 32090 31f565a3-33a1-49aa-a5b7-8c5e5f35ecfb
+# python main.py 59.110.142.4 32245 31f565a3-33a1-49aa-a5b7-8c5e5f35ecfb
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -261,23 +261,24 @@ class Algo():
                     uavtask = task_uav()
                     uavtask.setuavno(self.FlyPlane[i]["no"])
                 # 如果无人机的状态为需要充电并且无人机当前位置在停机坪则进行充电
-                if uavtask.getcharge() and (self.FlyPlane[i]["z"] == 0 and self.FlyPlane[i]["x"] == parking_x and self.FlyPlane[i]["y"] == parking_y):
+                if uavtask.getcharge():
                     x_dis = parking_x - self.FlyPlane[i]["x"] 
                     y_dis = parking_y - self.FlyPlane[i]["y"]
-                    if x_dis == 0 and y_dis == 0 and self.FlyPlane[i]["z"] == 0:
-                        type = self.FlyPlane[i]["type"]
-                        chargespeed = self.chargeinfo[type][1]
-                        capacity = self.chargeinfo[type][0]
-                        # 充电至最大容量还是充到够货物?
-                        # 若中途结束充电状态:self.FlyPlane[i]["status"] = 0
-                        if self.FlyPlane[i]["remain_electricity"] + chargespeed < capacity:
-                            self.FlyPlane[i]["remain_electricity"] += chargespeed 
-                        elif self.FlyPlane[i]["remain_electricity"] + chargespeed >= capacity:
-                            self.FlyPlane[i]["remain_electricity"] = capacity
-                            uavtask.setcharge(False)
-                            uavtask.setupwithnogood(True)   
-                    elif x_dis == 0 and y_dis == 0 and  self.FlyPlane[i]["z"] != 0:
-                        self.FlyPlane[i]["z"] -= 1
+                    if x_dis == 0 and y_dis == 0:
+                        if self.FlyPlane[i]["z"] != 0:
+                            self.FlyPlane[i]["z"] -= 1
+                        if self.FlyPlane[i]["z"] == 0:
+                            type = self.FlyPlane[i]["type"]
+                            chargespeed = self.chargeinfo[type][1]
+                            capacity = self.chargeinfo[type][0]
+                            # 充电至最大容量还是充到够货物?
+                            # 若中途结束充电状态:self.FlyPlane[i]["status"] = 0
+                            if self.FlyPlane[i]["remain_electricity"] + chargespeed < capacity:
+                                self.FlyPlane[i]["remain_electricity"] += chargespeed 
+                            elif self.FlyPlane[i]["remain_electricity"] + chargespeed >= capacity:
+                                self.FlyPlane[i]["remain_electricity"] = capacity
+                                uavtask.setcharge(False)
+                                uavtask.setupwithnogood(True)   
                     elif x_dis != 0 or y_dis != 0:
                         self.movexy(i,parking_x,parking_y)           
                 # 充电完毕飞到最低高度
@@ -337,6 +338,16 @@ class Algo():
                        goodshasbeenchoose.append(lastgoods[min_dis_index]["no"])
                     goodstartx = lastgoods[min_dis_index]["start_x"]
                     goodstarty = lastgoods[min_dis_index]["start_y"]
+                    # 粗略计算获取目的地距离当前位置需要移动的距离
+                    goodendx = lastgoods[min_dis_index]["end_x"] 
+                    goodendy = lastgoods[min_dis_index]["end_y"]
+                    from math import sqrt
+                    distance = 2*self.FlyPlane[i]["z"] + 1 + abs(goodendx - goodstartx) + abs(goodendy - goodstarty) 
+                    if self.FlyPlane[i]["remain_electricity"] - uavtask.getelectricitycost() < distance * uavtask.getelectricitycost():
+                        uavtask.setcharge(True)
+                        uavtask.setdowntogetgood(False)
+                        continue
+                    #========================================
                     x_dis = goodstartx - self.FlyPlane[i]["x"]
                     y_dis = goodstarty - self.FlyPlane[i]["y"]
                     if x_dis == 0 and y_dis == 0:
@@ -352,7 +363,7 @@ class Algo():
                     else:
                         self.movexy(i,goodstartx,goodstarty)
                 elif uavtask.getdowntogetgood():
-                    if  self.FlyPlane[i]["z"] == 0 :
+                    if  self.FlyPlane[i]["z"] == 0:
                         if uavtask.getgoodno() in [good["no"] for good in goods]:
                             self.FlyPlane[i]["goods_no"] = uavtask.getgoodno()
                             self.FlyPlane[i]["remain_electricity"] -= uavtask.getelectricitycost()
@@ -390,8 +401,8 @@ class Algo():
                     else:
                         self.FlyPlane[i]["z"] -= 1
                 self.tasklist[i] = uavtask 
-        aviavlePlane = [uav for uav in self.FlyPlane if uav != 0]  
-        #print(aviavlePlane[0])  
+        #print(self.FlyPlane[5]) 
+        aviavlePlane = [uav for uav in self.FlyPlane if uav != 0]   
         return aviavlePlane
 
 
@@ -535,6 +546,7 @@ def main(szIp, nPort, szToken):
         
         if pstMatchStatus["match_status"] == 1:
             print("game over, we value %d, enemy value %d\n", pstMatchStatus["we_value"], pstMatchStatus["enemy_value"])
+            print(FlyPlane)
             hSocket.close()
             return 0
 
