@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py 123.56.15.18 30826 e0970bac-18b7-4595-839e-034c6ec15b05
+# python main.py 59.110.142.4 32090 31f565a3-33a1-49aa-a5b7-8c5e5f35ecfb
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -166,6 +166,39 @@ class Algo():
                 return
         if x_dis == 0 and y_dis == 0 and z_dis != 0:
             self.FlyPlane[i]["z"] += int(z_dis/(abs(z_dis)))
+    def movexy(self,i,x,y):
+        x_dis = x - self.FlyPlane[i]["x"]
+        y_dis = y - self.FlyPlane[i]["y"]
+        temp_flyx = self.FlyPlane[i]["x"]
+        flag_x = 0
+        if self.FlyPlane[i]["z"] <= self.flyhlow:
+            self.FlyPlane[i]["z"] += 1
+            return
+        if x_dis != 0 and self.FlyPlane[i]["z"] > self.flyhlow:                     
+            res = [False if buildsize["x_start"] <= self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))) <= buildsize["x_end"] and \
+            buildsize["y_start"] <= self.FlyPlane[i]["y"] <= buildsize["y_end"] and self.FlyPlane[i]["z"] < buildsize["z_end"] else True for \
+            buildsize in self.buildings] 
+            if False not in res and ([self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))),self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]] not in self.xyz_status):
+                self.FlyPlane[i]["x"] += int(x_dis/(abs(x_dis)))
+                flag_x = 1
+                self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
+            elif self.FlyPlane[i]["z"] + 1 <= self.flayhhight:
+                self.FlyPlane[i]["z"] += 1
+                self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
+                return
+        if y_dis != 0 and self.FlyPlane[i]["z"] > self.flyhlow:
+            res = [False if buildsize["x_start"] <= self.FlyPlane[i]["x"]<= buildsize["x_end"] and \
+                    buildsize["y_start"] <= self.FlyPlane[i]["y"]+int(y_dis/(abs(y_dis))) <= buildsize["y_end"] \
+                    and self.FlyPlane[i]["z"] <  buildsize["z_end"] else True for buildsize in self.buildings]
+            if False not in res and ([self.FlyPlane[i]["x"],self.FlyPlane[i]["y"]+int(y_dis/(abs(y_dis))),self.FlyPlane[i]["z"]] not in self.xyz_status):
+                self.FlyPlane[i]["y"] += int(y_dis/(abs(y_dis)))
+                self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
+            else:
+                if flag_x or x_dis == 0:
+                    self.FlyPlane[i]["z"] += 1
+                    self.FlyPlane[i]["x"] = temp_flyx
+                    self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
+                return
     def AlgorithmCalculationFun(self,a, b, c):
         #parse matchstatus
         # good_no 出现 -1 的情况：
@@ -229,17 +262,24 @@ class Algo():
                     uavtask.setuavno(self.FlyPlane[i]["no"])
                 # 如果无人机的状态为需要充电并且无人机当前位置在停机坪则进行充电
                 if uavtask.getcharge() and (self.FlyPlane[i]["z"] == 0 and self.FlyPlane[i]["x"] == parking_x and self.FlyPlane[i]["y"] == parking_y):
-                    type = self.FlyPlane[i]["type"]
-                    chargespeed = self.chargeinfo[type][1]
-                    capacity = self.chargeinfo[type][0]
-                    # 充电至最大容量还是充到够货物?
-                    # 若中途结束充电状态:self.FlyPlane[i]["status"] = 0
-                    if self.FlyPlane[i]["remain_electricity"] + chargespeed < capacity:
-                        self.FlyPlane[i]["remain_electricity"] += chargespeed 
-                    elif self.FlyPlane[i]["remain_electricity"] + chargespeed >= capacity:
-                        self.FlyPlane[i]["remain_electricity"] = capacity
-                        uavtask.setcharge(False)
-                        uavtask.setupwithnogood(True)                     
+                    x_dis = parking_x - self.FlyPlane[i]["x"] 
+                    y_dis = parking_y - self.FlyPlane[i]["y"]
+                    if x_dis == 0 and y_dis == 0 and self.FlyPlane[i]["z"] == 0:
+                        type = self.FlyPlane[i]["type"]
+                        chargespeed = self.chargeinfo[type][1]
+                        capacity = self.chargeinfo[type][0]
+                        # 充电至最大容量还是充到够货物?
+                        # 若中途结束充电状态:self.FlyPlane[i]["status"] = 0
+                        if self.FlyPlane[i]["remain_electricity"] + chargespeed < capacity:
+                            self.FlyPlane[i]["remain_electricity"] += chargespeed 
+                        elif self.FlyPlane[i]["remain_electricity"] + chargespeed >= capacity:
+                            self.FlyPlane[i]["remain_electricity"] = capacity
+                            uavtask.setcharge(False)
+                            uavtask.setupwithnogood(True)   
+                    elif x_dis == 0 and y_dis == 0 and  self.FlyPlane[i]["z"] != 0:
+                        self.FlyPlane[i]["z"] -= 1
+                    elif x_dis != 0 or y_dis != 0:
+                        self.movexy(i,parking_x,parking_y)           
                 # 充电完毕飞到最低高度
                 elif uavtask.getupwithnogood() and ((self.FlyPlane[i]["z"]+1) not in z_status or (self.FlyPlane[i]["x"] != parking_x or self.FlyPlane[i]["y"] != parking_y)) :
                     self.FlyPlane[i]["z"] += 1
@@ -295,38 +335,10 @@ class Algo():
                     min_dis_index = dis.index(min(dis))
                     if lastgoods[min_dis_index]["no"] not in goodshasbeenchoose:
                        goodshasbeenchoose.append(lastgoods[min_dis_index]["no"])
-                    x_dis = lastgoods[min_dis_index]["start_x"] - self.FlyPlane[i]["x"]
-                    y_dis = lastgoods[min_dis_index]["start_y"] - self.FlyPlane[i]["y"]
-                    temp_flyx = self.FlyPlane[i]["x"]
-                    flag_x = 0
-                    if self.FlyPlane[i]["z"] <= self.flyhlow:
-                        self.FlyPlane[i]["z"] += 1
-                        continue
-                    if x_dis != 0 and self.FlyPlane[i]["z"] > self.flyhlow:                     
-                        res = [False if buildsize["x_start"] <= self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))) <= buildsize["x_end"] and \
-                        buildsize["y_start"] <= self.FlyPlane[i]["y"] <= buildsize["y_end"] and self.FlyPlane[i]["z"] < buildsize["z_end"] else True for \
-                        buildsize in self.buildings] 
-                        if False not in res and ([self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))),self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]] not in self.xyz_status):
-                            self.FlyPlane[i]["x"] += int(x_dis/(abs(x_dis)))
-                            flag_x = 1
-                            self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
-                        elif self.FlyPlane[i]["z"] + 1 <= self.flayhhight:
-                            self.FlyPlane[i]["z"] += 1
-                            self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
-                            continue
-                    if y_dis != 0 and self.FlyPlane[i]["z"] > self.flyhlow:
-                        res = [False if buildsize["x_start"] <= self.FlyPlane[i]["x"]<= buildsize["x_end"] and \
-                              buildsize["y_start"] <= self.FlyPlane[i]["y"]+int(y_dis/(abs(y_dis))) <= buildsize["y_end"] \
-                              and self.FlyPlane[i]["z"] <  buildsize["z_end"] else True for buildsize in self.buildings]
-                        if False not in res and ([self.FlyPlane[i]["x"],self.FlyPlane[i]["y"]+int(y_dis/(abs(y_dis))),self.FlyPlane[i]["z"]] not in self.xyz_status):
-                            self.FlyPlane[i]["y"] += int(y_dis/(abs(y_dis)))
-                            self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
-                        else:
-                            if flag_x or x_dis == 0:
-                               self.FlyPlane[i]["z"] += 1
-                               self.FlyPlane[i]["x"] = temp_flyx
-                               self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
-                            continue
+                    goodstartx = lastgoods[min_dis_index]["start_x"]
+                    goodstarty = lastgoods[min_dis_index]["start_y"]
+                    x_dis = goodstartx - self.FlyPlane[i]["x"]
+                    y_dis = goodstarty - self.FlyPlane[i]["y"]
                     if x_dis == 0 and y_dis == 0:
                         if lastgoods[min_dis_index]["no"] not in self.goodnohasbeendetected:
                             self.goodnohasbeendetected.append(lastgoods[min_dis_index]["no"])
@@ -337,6 +349,8 @@ class Algo():
                             uavtask.setdowntogetgood(True)
                             uavtask.setgetgoodxy(False)
                             self.FlyPlane[i]["z"] -= 1
+                    else:
+                        self.movexy(i,goodstartx,goodstarty)
                 elif uavtask.getdowntogetgood():
                     if  self.FlyPlane[i]["z"] == 0 :
                         if uavtask.getgoodno() in [good["no"] for good in goods]:
@@ -357,37 +371,15 @@ class Algo():
                         uavtask.setputgoodxy(True)
                 elif uavtask.getputgoodxy():
                     self.FlyPlane[i]["remain_electricity"] -= uavtask.getelectricitycost()
-                    x_dis = uavtask.getend()[0] - self.FlyPlane[i]["x"]
-                    y_dis = uavtask.getend()[1] - self.FlyPlane[i]["y"]
-                    temp_flyx = self.FlyPlane[i]["x"]
-                    flag_x = 0
-                    if x_dis != 0:                     
-                        res = [False if buildsize["x_start"] < self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))) < buildsize["x_end"] and \
-                        buildsize["y_start"] < self.FlyPlane[i]["y"] < buildsize["y_end"] and self.FlyPlane[i]["z"] < buildsize["z_end"] else True for \
-                        buildsize in self.buildings] 
-                        if False not in res and ([self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))),self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]] not in self.xyz_status):
-                            self.FlyPlane[i]["x"] += int(x_dis/(abs(x_dis)))
-                            flag_x = 1
-                            self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
-                        elif self.FlyPlane[i]["z"] + 1 <= self.flayhhight:
-                            self.FlyPlane[i]["z"] += 1
-                            self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
-                            continue
-                    if y_dis != 0:
-                        res = [False if buildsize["x_start"] <= self.FlyPlane[i]["x"]<= buildsize["x_end"] and \
-                              buildsize["y_start"] <= self.FlyPlane[i]["y"]+int(y_dis/(abs(y_dis))) <= buildsize["y_end"] \
-                              and self.FlyPlane[i]["z"] <  buildsize["z_end"] else True for buildsize in self.buildings]
-                        if False not in res and ([self.FlyPlane[i]["x"],self.FlyPlane[i]["y"]+int(y_dis/(abs(y_dis))),self.FlyPlane[i]["z"]] not in self.xyz_status):
-                            self.FlyPlane[i]["y"] += int(y_dis/(abs(y_dis)))
-                            self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
-                        elif flag_x or x_dis == 0 and self.FlyPlane[i]["z"] + 1 <= self.flayhhight:
-                               self.FlyPlane[i]["z"] += 1
-                               self.FlyPlane[i]["x"] = temp_flyx
-                               self.xyz_status[i] = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]]
-                               continue
+                    goodendx = uavtask.getend()[0] 
+                    goodendy = uavtask.getend()[1] 
+                    x_dis = goodendx - self.FlyPlane[i]["x"]
+                    y_dis = goodendy - self.FlyPlane[i]["y"]
                     if x_dis == 0 and y_dis == 0:
                         uavtask.setputgoodxy(False)
                         uavtask.setdowntoputgood(True)
+                    else:
+                        self.movexy(i,goodendx,goodendy)
                 elif uavtask.getdowntoputgood():
                     self.FlyPlane[i]["remain_electricity"] -= uavtask.getelectricitycost()
                     if  self.FlyPlane[i]["z"] == 0:
