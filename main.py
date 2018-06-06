@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py  39.107.126.155 32672 31f565a3-33a1-49aa-a5b7-8c5e5f35ecfb
+# python main.py  47.95.243.246 30489 31f565a3-33a1-49aa-a5b7-8c5e5f35ecfb
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -299,6 +299,9 @@ class Algo():
                     y_dis = lastgoods[min_dis_index]["start_y"] - self.FlyPlane[i]["y"]
                     temp_flyx = self.FlyPlane[i]["x"]
                     flag_x = 0
+                    if self.FlyPlane[i]["z"] <= self.flyhlow:
+                        self.FlyPlane[i]["z"] += 1
+                        continue
                     if x_dis != 0 and self.FlyPlane[i]["z"] > self.flyhlow:                     
                         res = [False if buildsize["x_start"] <= self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))) <= buildsize["x_end"] and \
                         buildsize["y_start"] <= self.FlyPlane[i]["y"] <= buildsize["y_end"] and self.FlyPlane[i]["z"] < buildsize["z_end"] else True for \
