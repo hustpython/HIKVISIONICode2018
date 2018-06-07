@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py 39.107.126.155 31011 d938086a-8199-496d-98ec-156d2ec95703
+# python main.py 47.95.243.246 30070 66c7b4e8-ea70-43e8-8593-4fa0578d58b5
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
