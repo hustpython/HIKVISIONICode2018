@@ -2,7 +2,7 @@
 import sys
 import socket
 import json
-# python main.py 39.107.126.155 31441 e0970bac-18b7-4595-839e-034c6ec15b05
+# python main.py 39.107.126.155 31011 d938086a-8199-496d-98ec-156d2ec95703
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -332,7 +332,7 @@ class Algo():
                             continue
                         else:
                             self.MovetoAttack(i)
-                            self.freeuavavoidgood(i)
+                            #self.freeuavavoidgood(i)
                             self.recorduavxyz(i)
                             continue
                     #min_dis_index = dis.index(max(dis))
