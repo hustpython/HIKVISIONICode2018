@@ -3,7 +3,7 @@
 import sys
 import socket
 import json
-# python main.py 47.95.243.246 30825 e11eb9ff-6f2d-4960-8511-cb3d46aa3dac
+# python main.py 123.56.15.18 30981 5914f742-9390-4ff7-ba98-78dde2172050
 # 0,F1,100
 # 1,F3,20
 # 2,F3,20
@@ -330,6 +330,10 @@ class Algo():
             self.uavenemy = [uavenemy for uavenemy in b["UAV_enemy"] if [uavenemy["x"],uavenemy["y"],uavenemy["z"]] != self.enemyparking and uavenemy["status"]!=1]
             self.parkingenemynum = len([enemyuav for enemyuav in self.uavenemy if (enemyuav["x"] == self.parking_x and enemyuav["y"]==self.parking_y)])
             self.FlyPlane = b["UAV_we"]
+            #======================
+            enemylast = [enemy for enemy in b["UAV_enemy"] if enemy["status"] != 1 and enemy["goods_no"]!=-1]
+            welast = [we for we in self.FlyPlane if we["status"] != 1]
+            #======================
             # 对无人机按照运输能力进行排序
             # self.FlyPlane = sorted(b["UAV_we"] ,key = lambda uav:uav["load_weight"],reverse = True)
             # 将购买成功的无人机添加到任务列表中，初始化为0
@@ -367,6 +371,15 @@ class Algo():
                     uavtask = task_uav()
                     uavtask.setuavno(self.FlyPlane[i]["no"])
                 # 如果无人机的状态为需要充电并且无人机当前位置在停机坪则进行充电
+                if len(enemylast) == 1 and len(welast) == 1 and self.FlyPlane[i]["status"] !=1 and self.FlyPlane[i]["goods_no"] == -1:
+                    uavtask.setdirectkill(True)
+                    uavtask.setcharge(False)
+                    uavtask.setgetgoodxy(False)
+                    uavtask.setupwithgood(False)
+                    uavtask.setputgoodxy(False)
+                    uavtask.setattackenemy(False)
+                    uavtask.setdowntogetgood(False)
+                    uavtask.setdowntoputgood(False)
                 if uavtask.getcharge():
                     # 如果观测到停机坪有充电后的飞机起飞则需要进行避让
                     # 对F3飞机直接进行飞行
