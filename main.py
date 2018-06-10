@@ -646,7 +646,7 @@ def main(szIp, nPort, szToken):
             wevalue = pstMatchStatus["we_value"]
             enemyaviable = [enemy for enemy in  pstMatchStatus["UAV_enemy"] if enemy["status"] != 1]
             enemyinmyparkingnum = Algo_main.parkingenemynum
-        if carrygoodnum <=0 and wevalue >= F2pri and enemyinmyparkingnum == 0:
+        if carrygoodnum <=1 and wevalue >= F2pri and enemyinmyparkingnum == 0:
             purchaselist = [{"purchase":"F2"}]
         elif enemyinmyparkingnum > 0:
             if enemyinmyparkingnum * F3pri > wevalue:
