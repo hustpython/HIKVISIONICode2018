@@ -1,8 +1,15 @@
+
 # -*- coding:utf-8 -*-
 import sys
 import socket
 import json
-# python main.py 39.107.126.155 30346 66c7b4e8-ea70-43e8-8593-4fa0578d58b5
+# python main.py 47.95.243.246 31564 839f0e54-199a-48e2-928e-d170f6944879
+# 0,F1,100
+# 1,F3,20
+# 2,F3,20
+# 3,F4,30
+# 4,F4,30
+# 5,F2,50
 #从服务器接收一段字符串, 转化成字典的形式
 def RecvJuderData(hSocket):
     nRet = -1
@@ -115,7 +122,7 @@ class task_uav(object):
         return self.goodno
 class Algo():
     def __init__(self):
-        self.tasklist = [0,0,0,0,0,0]
+        self.tasklist = [task_uav() for i in range(6)]
         self.enemyparking = [-1,-1,-1]
         self.goodnohasbeendetected = []
         self.enemygoodno = []
@@ -215,6 +222,53 @@ class Algo():
         elif self.flyhlow < self.FlyPlane[i]["z"] - 1 and ([self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]-1] not in self.xyz_status):
             self.FlyPlane[i]["z"] -= 1
             self.recorduavz(i)
+    # =========================== by mxq =====================
+    def makepairforgoodanduav(self):
+        pairsuccesslist = [0 if uavtask.getgetgoodxy() else -1 for uavtask in self.tasklist]
+        findlist = [-1 for i in range(len(self.FlyPlane))]
+        makepairsign = False
+        from copy import deepcopy
+        self.tempgoodlist = deepcopy(self.tempgoodlast)
+        self.tempuavlist = deepcopy(self.FlyPlane)
+        self.tempuavlist = [-1 if pairsuccesslist[i] == -1 else uav for (i,uav) in enumerate(self.tempuavlist)]
+        while not makepairsign:
+            goodres = list(map(self.goodchooseuav,self.tempgoodlist))
+            uavres = list(map(self.uavchoosegood,self.tempuavlist))
+            # 对于无人机选择的为 -1 的无人机,则无法分配物品,因为没有满足其运送重量的无人机
+            # 找出那些物品选择无人机和无人机选择的物品相同的无人机
+            pairsuccesslist = [uav if  uav == -1 or i == goodres[uav] else -2 for (i,uav) in enumerate(uavres)]
+            findlist = [i if  i !=-2 and i!= -1 else findlist[_] for (_,i) in enumerate(pairsuccesslist)]
+            # [1,3,4,20,-1,0]
+            self.tempuavlist = [-1 if pairsuccesslist[i] != -2 else uav for (i,uav) in enumerate(self.tempuavlist)]
+            # 对于无人机选择的物品与物品选择的无人机不对应的情况,则应该删除这个无人机选择的物品,让无人机重新选择
+            resgood = [good if good == -1 or i == uavres[good] else -2 for (i,good) in enumerate(goodres)]
+            self.tempgoodlist = [-1 if resgood[i] != -2 else good for (i,good) in enumerate(self.tempgoodlist)]
+            #self.tempuavlist = [uav for (i,uav) in enumerate(self.tempuavlist) if i not in resuav]
+            #self.tempgoodlast = [good for (i,good) in enumerate(self.tempgoodlist) if i not in resgood]
+            if len(self.tempuavlist) == self.tempuavlist.count(-1) or len(self.tempgoodlist)==self.tempuavlist.count(-1):
+                makepairsign = True
+        return findlist
+    def goodchooseuav(self,good):
+        dis=[good["value"]/max([(abs(good["start_x"] - FlyPlane["x"]),abs(good["start_y"] - FlyPlane["y"])])+\
+            max([abs(good["end_x"] - good["start_x"]),abs(good["end_y"] - good["start_y"])])+3*(FlyPlane["z"]))\
+            if FlyPlane != -1 and good != -1 and FlyPlane["status"] !=1 \
+            and good["weight"]<=FlyPlane["load_weight"] and good["lefttime"]>max([abs(good["start_x"] - uav["x"]),abs(good["start_y"] - uav["y"]) \
+            and (FlyPlane["remain_electricity"] - good["weight"] >= good["weight"] * (2*FlyPlane["z"] + abs(good["end_x"] - good["start_x"]) + abs(good["end_y"] - good["start_y"]))) \
+            else -1 for FlyPlane in self.tempuavlist]
+        if not dis or max(dis) == -1:
+            return -1
+        return dis.index(max(dis))
+    def uavchoosegood(self,uav):
+        dis=[good["value"]/max([(abs(good["start_x"] - uav["x"]),abs(good["start_y"] - uav["y"])])+\
+            max([abs(good["end_x"] - good["start_x"]),abs(good["end_y"] - good["start_y"])])+3*(uav["z"]))\
+            if good != -1 and uav != -1 and uav["status"] != 1
+            and good["weight"]<=uav["load_weight"] and good["lefttime"]>max([abs(good["start_x"] - uav["x"]),abs(good["start_y"] - uav["y"]) \
+            and (uav["remain_electricity"] - good["weight"] >= good["weight"] * (2*uav["z"] + abs(good["end_x"] - good["start_x"]) + abs(good["end_y"] - good["start_y"]))) \
+            else -1 for good in self.tempgoodlist]
+        if not dis or max(dis) == -1:
+            return -1
+        return dis.index(max(dis))
+    # =========================== by mxq =====================
     def AlgorithmCalculationFun(self,a, b, c):
         #parse matchstatus
         # good_no 出现 -1 的情况：
@@ -231,7 +285,6 @@ class Algo():
         self.map_y = a["map"]["y"]
         parking_x = a["parking"]["x"]
         parking_y = a["parking"]["y"]
-        goodshasbeenchoose = []
         self.enemyhasbeenchoose = []
         #===============================一些限制条件=======================
         fogs = [{"x_start":foginfo["x"],"x_end":foginfo["x"]+foginfo["l"]-1,\
@@ -253,22 +306,25 @@ class Algo():
             # 对无人机按照运输能力进行排序
             # self.FlyPlane = sorted(b["UAV_we"] ,key = lambda uav:uav["load_weight"],reverse = True)
             # 将购买成功的无人机添加到任务列表中，初始化为0
+            chargeunm = len([task for task in self.tasklist if task.getcharge()])
             len_cha = len(self.FlyPlane) - len(self.tasklist)
             if len_cha > 0:
-               self.tasklist.extend([0 for i in range(len_cha)])
+               self.tasklist.extend([task_uav() for i in range(len_cha)])
             goods = b["goods"]
+            # ===========================test mxq ============================================
+            self.tempgoodlast = [good for good in goods if good["no"] not in self.enemygoodno and good["no"] not in self.goodnohasbeendetected]
+            pairlist = self.makepairforgoodanduav()  
+            # ======================================end=======================================
             # 垂直上升,一架一架的离开，直达所有飞机到达最低高度
             self.z_status = [sin_z["z"] if(sin_z["x"]==parking_x and sin_z["y"]==parking_y) and sin_z["status"]!=1 and sin_z["z"] <= self.flyhlow \
                             else -1 for sin_z in self.FlyPlane ]
-            self.xyz_status = [[uavxy["x"],uavxy["y"],uavxy["z"]] for uavxy in self.FlyPlane]
+            self.xyz_status = [[uavxy["x"],uavxy["y"],uavxy["z"]] if uavxy["status"]!=1 else [-1,-1,-1] for uavxy in self.FlyPlane]
             for enemy in self.uavenemy:
                 if enemy["goods_no"] != -1 and enemy["goods_no"] not in self.enemygoodno:
                     self.enemygoodno.append(enemy["goods_no"])
             self.goodposition = [[good["start_x"],good["start_y"]] for good in goods if good["status"] == 0 and good["no"] not in self.enemygoodno]
             self.goodposition.extend([[good["end_x"],good["end_y"]] for good in goods if good["status"] == 0 and good["no"] not in self.enemygoodno])
-            for i,_ in enumerate(self.FlyPlane):
-                lastgoods = [good for good in goods if good["no"] not in goodshasbeenchoose \
-                             and good["no"] not in self.goodnohasbeendetected and good["status"] == 0 and good["no"] not in self.enemygoodno] 
+            for i,_ in enumerate(self.FlyPlane): 
                 # 毁掉的飞机直接跳过
                 if self.FlyPlane[i]["status"] == 1:
                     continue
@@ -289,7 +345,9 @@ class Algo():
                         if needvoiduav:
                             continue
                     if x_dis == 0 and y_dis == 0:
-                        if self.FlyPlane[i]["z"] != 0:
+                        #needvoiduav = len([i for i in self.z_status if i != -1])
+                        if self.FlyPlane[i]["z"] != 0 and (self.FlyPlane[i]["z"]-1 == 0 or \
+                        [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]-1] not in self.xyz_status):
                             self.FlyPlane[i]["z"] -= 1
                         if self.FlyPlane[i]["z"] == 0:
                             type = self.FlyPlane[i]["type"]
@@ -317,57 +375,37 @@ class Algo():
                         uavtask.setgetgoodxy(True)
                     self.recorduavxyz(i)
                 elif uavtask.getgetgoodxy():
-                    #dis = [(good["start_x"] - self.FlyPlane[i]["x"])**2 + (good["start_y"] - self.FlyPlane[i]["y"])**2 + (self.FlyPlane[i]["z"])**2\
-                           #if good["weight"]<=self.FlyPlane[i]["load_weight"] else float("inf") for good in lastgoods]
-                    dis = [(good["start_x"] - self.FlyPlane[i]["x"])**2 + (good["end_x"] - good["start_x"])**2 +\
-                           (good["start_y"] - self.FlyPlane[i]["y"])**2 + (good["end_y"] - good["start_y"])**2 +\
-                           (self.FlyPlane[i]["z"])**2 - good["value"]\
-                           if good["weight"]<=self.FlyPlane[i]["load_weight"] else float("inf") for good in lastgoods]
-                    #dis = [good["weight"] if good["weight"]<=self.FlyPlane[i]["load_weight"] else -float("inf") for good in lastgoods]
-                    #如果没有找到物品目标保持不动即可
-                    #if not dis or max(dis) == -float("inf"):
-                    if not dis or min(dis) == float("inf"):
-                        if self.FlyPlane[i]["x"] == parking_x and self.FlyPlane[i]["y"] == parking_y:
-                            self.parkingrandmove(i)
-                            self.recorduavxyz(i)
-                            continue
-                        else:
-                            self.MovetoAttack(i)
-                            #self.freeuavavoidgood(i)
-                            self.recorduavxyz(i)
-                            continue
-                    #min_dis_index = dis.index(max(dis))
-                    min_dis_index = dis.index(min(dis))
-                    if lastgoods[min_dis_index]["no"] not in goodshasbeenchoose:
-                       goodshasbeenchoose.append(lastgoods[min_dis_index]["no"])
-                    goodstartx = lastgoods[min_dis_index]["start_x"]
-                    goodstarty = lastgoods[min_dis_index]["start_y"]
-                    # 粗略计算获取目的地距离当前位置需要移动的距离
-                    goodendx = lastgoods[min_dis_index]["end_x"] 
-                    goodendy = lastgoods[min_dis_index]["end_y"]
-                    from math import sqrt
-                    distance = 2*self.FlyPlane[i]["z"] + 1 + abs(goodendx - goodstartx) + abs(goodendy - goodstarty)
-                    tempcapacity = self.chargeinfo[self.FlyPlane[i]["type"]][0] 
-                    if self.FlyPlane[i]["remain_electricity"] - lastgoods[min_dis_index]["weight"] < distance * lastgoods[min_dis_index]["weight"]:
+                    if pairlist[i] == -1:
+                        tempcapacity = self.chargeinfo[self.FlyPlane[i]["type"]][0] 
                         if self.FlyPlane[i]["remain_electricity"] <= 0.5 * tempcapacity:
-                            uavtask.setcharge(True)
-                            uavtask.setgetgoodxy(False)
-                        self.freeuavavoidgood(i)
+                            if chargeunm <= 2:
+                                self.freeuavavoidgood(i)
+                                uavtask.setcharge(True)
+                                uavtask.setgetgoodxy(False)
+                            else:
+                                self.MovetoAttack(i)
+                            self.recorduavxyz(i)
+                            continue
                         if self.FlyPlane[i]["x"] == parking_x and self.FlyPlane[i]["y"] == parking_y:
                             self.parkingrandmove(i)
-                        self.recorduavxyz(i)
+                            self.recorduavxyz(i)
+                        else:
+                             self.MovetoAttack(i)
+                             self.recorduavxyz(i)
                         continue
-                    #========================================
+                    choosegood = self.tempgoodlast[pairlist[i]]
+                    goodstartx = choosegood["start_x"]
+                    goodstarty = choosegood["start_y"]
                     x_dis = goodstartx - self.FlyPlane[i]["x"]
                     y_dis = goodstarty - self.FlyPlane[i]["y"]
                     if x_dis == 0 and y_dis == 0:
-                        if lastgoods[min_dis_index]["no"] not in self.goodnohasbeendetected:
-                            self.goodnohasbeendetected.append(lastgoods[min_dis_index]["no"])
+                        if choosegood["no"] not in self.goodnohasbeendetected:
+                            self.goodnohasbeendetected.append(choosegood["no"])
                         nextposition = [self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"] -1]
-                        if  lastgoods[min_dis_index]["remain_time"] > self.FlyPlane[i]["z"] and (nextposition not in self.xyz_status):
-                            uavtask.setend(lastgoods[min_dis_index]["end_x"],lastgoods[min_dis_index]["end_y"])
-                            uavtask.setgoodno(lastgoods[min_dis_index]["no"])
-                            uavtask.setelectricitycost(lastgoods[min_dis_index]["weight"])
+                        if  choosegood["remain_time"] > self.FlyPlane[i]["z"] and (nextposition not in self.xyz_status):
+                            uavtask.setend(choosegood["end_x"],choosegood["end_y"])
+                            uavtask.setgoodno(choosegood["no"])
+                            uavtask.setelectricitycost(choosegood["weight"])
                             uavtask.setdowntogetgood(True)
                             uavtask.setgetgoodxy(False)
                             self.FlyPlane[i]["z"] -= 1
