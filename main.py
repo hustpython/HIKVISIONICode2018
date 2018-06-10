@@ -251,10 +251,10 @@ class Algo():
     def goodchooseuav(self,good):
         dis=[good["value"]/max([(abs(good["start_x"] - FlyPlane["x"]),abs(good["start_y"] - FlyPlane["y"])])+\
             max([abs(good["end_x"] - good["start_x"]),abs(good["end_y"] - good["start_y"])])+3*(FlyPlane["z"]))\
-              if FlyPlane != -1 and good != -1 and FlyPlane["status"] !=1 \
-              and good["weight"]<=FlyPlane["load_weight"] and good["lefttime"]>max([abs(good["start_x"] - uav["x"]),abs(good["start_y"] - uav["y"]) \
-              and (FlyPlane["remain_electricity"] - good["weight"] >= good["weight"] * (2*FlyPlane["z"] + abs(good["end_x"] - good["start_x"]) + abs(good["end_y"] - good["start_y"]))) \
-              else -1 for FlyPlane in self.tempuavlist]
+            if FlyPlane != -1 and good != -1 and FlyPlane["status"] !=1 \
+            and good["weight"]<=FlyPlane["load_weight"] and good["lefttime"]>max([abs(good["start_x"] - uav["x"]),abs(good["start_y"] - uav["y"]) \
+            and (FlyPlane["remain_electricity"] - good["weight"] >= good["weight"] * (2*FlyPlane["z"] + abs(good["end_x"] - good["start_x"]) + abs(good["end_y"] - good["start_y"]))) \
+            else -1 for FlyPlane in self.tempuavlist]
         if not dis or max(dis) == -1:
             return -1
         return dis.index(max(dis))
