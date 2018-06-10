@@ -249,20 +249,38 @@ class Algo():
                 makepairsign = True
         return findlist
     def goodchooseuav(self,good):
-        dis=[good["value"]/max([(abs(good["start_x"] - FlyPlane["x"]),abs(good["start_y"] - FlyPlane["y"])])+\
-            max([abs(good["end_x"] - good["start_x"]),abs(good["end_y"] - good["start_y"])])+3*(FlyPlane["z"]))\
-            if FlyPlane != -1 and good != -1 and FlyPlane["status"] !=1 \
-            and good["weight"]<=FlyPlane["load_weight"] and good["lefttime"]>max([abs(good["start_x"] - uav["x"]),abs(good["start_y"] - uav["y"]) \
-            and (FlyPlane["remain_electricity"] - good["weight"] >= good["weight"] * (2*FlyPlane["z"] + abs(good["end_x"] - good["start_x"]) + abs(good["end_y"] - good["start_y"]))) \
-            else -1 for FlyPlane in self.tempuavlist]
+        # dis的计算应该包括取货,送货,货物重量,货物重量与无人机载重量以及无人机电量和路程无人机载重量的满足约束问题
+        # dis = [(good["start_x"] - FlyPlane["x"])**2 + (good["end_x"] - good["start_x"])**2 +\
+        #       (good["start_y"] - FlyPlane["y"])**2 + (good["end_y"] - good["start_y"])**2 +\
+        #       3*(FlyPlane["z"])**2 - good["value"]\
+        #       if FlyPlane != -1 and good != -1 and FlyPlane["status"] !=1 \
+        #       and good["weight"]<=FlyPlane["load_weight"] and FlyPlane["status"] !=1 \
+        #       and (FlyPlane["remain_electricity"] - good["weight"] >= good["weight"] * (2*FlyPlane["z"] + abs(good["end_x"] - good["start_x"]) + abs(good["end_y"] - good["start_y"]))) \
+        #       else float("inf") for FlyPlane in self.tempuavlist]
+        # if not dis or min(dis) == float("inf"):
+        #     return -1
+        # return dis.index(min(dis))
+        dis=[good["value"]/(abs(good["start_x"] - FlyPlane["x"])+abs(good["start_y"] - FlyPlane["y"])+\
+            abs(good["end_x"] - good["start_x"])+abs(good["end_y"] - good["start_y"])+3*(FlyPlane["z"]))\
+              if FlyPlane != -1 and good != -1 and FlyPlane["status"] !=1 \
+              and good["weight"]<=FlyPlane["load_weight"] and FlyPlane["status"] !=1 \
+              and (FlyPlane["remain_electricity"] - good["weight"] >= good["weight"] * (2*FlyPlane["z"] + abs(good["end_x"] - good["start_x"]) + abs(good["end_y"] - good["start_y"]))) \
+              else -1 for FlyPlane in self.tempuavlist]
         if not dis or max(dis) == -1:
             return -1
         return dis.index(max(dis))
     def uavchoosegood(self,uav):
-        dis=[good["value"]/max([(abs(good["start_x"] - uav["x"]),abs(good["start_y"] - uav["y"])])+\
-            max([abs(good["end_x"] - good["start_x"]),abs(good["end_y"] - good["start_y"])])+3*(uav["z"]))\
+        # dis = [(good["start_x"] - uav["x"])**2 + (good["end_x"] - good["start_x"])**2 +\
+        #       (good["start_y"] - uav["y"])**2 + (good["end_y"] - good["start_y"])**2 +\
+        #       3*(uav["z"])**2 - good["value"]\
+        #       if good != -1 and uav != -1 and uav["status"] != 1
+        #       and good["weight"]<=uav["load_weight"] and uav["status"] !=1 \
+        #       and (uav["remain_electricity"] - good["weight"] >= good["weight"] * (2*uav["z"] + abs(good["end_x"] - good["start_x"]) + abs(good["end_y"] - good["start_y"]))) \
+        #       else float("inf") for good in self.tempgoodlist]
+        dis=[good["value"]/(abs(good["start_x"] - uav["x"])+abs(good["start_y"] - uav["y"])+\
+            abs(good["end_x"] - good["start_x"])+abs(good["end_y"] - good["start_y"])+3*(uav["z"]))\
             if good != -1 and uav != -1 and uav["status"] != 1
-            and good["weight"]<=uav["load_weight"] and good["lefttime"]>max([abs(good["start_x"] - uav["x"]),abs(good["start_y"] - uav["y"]) \
+            and good["weight"]<=uav["load_weight"]\
             and (uav["remain_electricity"] - good["weight"] >= good["weight"] * (2*uav["z"] + abs(good["end_x"] - good["start_x"]) + abs(good["end_y"] - good["start_y"]))) \
             else -1 for good in self.tempgoodlist]
         if not dis or max(dis) == -1:
