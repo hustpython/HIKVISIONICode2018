@@ -3,7 +3,7 @@
 import sys
 import socket
 import json
-# python main.py 123.56.15.18 30981 5914f742-9390-4ff7-ba98-78dde2172050
+# python main.py 47.95.243.246 32728 66c7b4e8-ea70-43e8-8593-4fa0578d58b5
 # 0,F1,100
 # 1,F3,20
 # 2,F3,20
@@ -361,6 +361,15 @@ class Algo():
             self.goodposition.extend([[good["end_x"],good["end_y"]] for good in goods if good["status"] == 0 and good["no"] not in self.enemygoodno])
             for i,_ in enumerate(self.FlyPlane): 
                 # 毁掉的飞机直接跳过
+                if len(enemylast) == 1 and len(welast) == 1 and self.FlyPlane[i]["status"] !=1 and self.FlyPlane[i]["goods_no"] == -1:
+                    uavtask.setdirectkill(True)
+                    uavtask.setcharge(False)
+                    uavtask.setgetgoodxy(False)
+                    uavtask.setupwithgood(False)
+                    uavtask.setputgoodxy(False)
+                    uavtask.setattackenemy(False)
+                    uavtask.setdowntogetgood(False)
+                    uavtask.setdowntoputgood(False)
                 if self.FlyPlane[i]["status"] == 1:
                     continue
                 # 根据self.FlyPlane的编号找到相对应的uavtask
@@ -371,15 +380,6 @@ class Algo():
                     uavtask = task_uav()
                     uavtask.setuavno(self.FlyPlane[i]["no"])
                 # 如果无人机的状态为需要充电并且无人机当前位置在停机坪则进行充电
-                if len(enemylast) == 1 and len(welast) == 1 and self.FlyPlane[i]["status"] !=1 and self.FlyPlane[i]["goods_no"] == -1:
-                    uavtask.setdirectkill(True)
-                    uavtask.setcharge(False)
-                    uavtask.setgetgoodxy(False)
-                    uavtask.setupwithgood(False)
-                    uavtask.setputgoodxy(False)
-                    uavtask.setattackenemy(False)
-                    uavtask.setdowntogetgood(False)
-                    uavtask.setdowntoputgood(False)
                 if uavtask.getcharge():
                     # 如果观测到停机坪有充电后的飞机起飞则需要进行避让
                     # 对F3飞机直接进行飞行
@@ -396,7 +396,7 @@ class Algo():
                     y_dis = self.parking_y - self.FlyPlane[i]["y"]
                     if abs(x_dis)==1 or abs(y_dis)==1:
                         needvoiduav = len([i for i in self.z_status if i != -1])
-                        if needvoiduav:
+                        if needvoiduav or self.parkingenemynum != 0:
                             continue
                     if x_dis == 0 and y_dis == 0:
                         #needvoiduav = len([i for i in self.z_status if i != -1])
