@@ -3,7 +3,7 @@
 import sys
 import socket
 import json
-# python main.py 47.95.243.246 31089 5914f742-9390-4ff7-ba98-78dde2172050
+# python main0611.py 47.95.243.246 32369 839f0e54-199a-48e2-928e-d170f6944879
 # 0,F1,100
 # 1,F3,20
 # 2,F3,20
@@ -51,12 +51,17 @@ class task_uav(object):
         self.downtoputgood = False
         self.getgoodxy = False
         self.putgoodxy = False
+        self.preenemyattackno = -1
         self.electricitycost = -1
         self.end_x = -1
         self.end_y = -1
         self.goodno = -1
         self.uavno = -1
     #===占据别停机坪
+    def setpreenemyattackno(self,no):
+        self.preenemyattackno = no 
+    def getpreenemyattackno(self):
+        return self.preenemyattackno
     def setoccupy(self,state):
         self.occupy = state
     def getoccupy(self):
@@ -135,12 +140,46 @@ class Algo():
         self.killdutynum = 0
         self.occupydutynum = 0
         self.parkingenemynum = 0
+    # def MovetoAttack(self,i):
+    #     dis_we_enemy = [(enemy["x"] - self.FlyPlane[i]["x"])**2 + (enemy["y"] - self.FlyPlane[i]["y"])**2 \
+    #                     + (enemy["z"] - self.FlyPlane[i]["z"])**2 if (self.FlyPlane[i]["load_weight"]<=enemy["load_weight"] or enemy["goods_no"]!=-1)\
+    #                     and enemy["no"] not in self.enemyhasbeenchoose \
+    #                     else float("inf") for enemy in self.uavenemy]
+    #     # 如果敌军只有最后一架飞机则一个选择一个与其价值相当的无人机继续撞击任务
+    #     if not dis_we_enemy or min(dis_we_enemy) == float("inf"):
+    #         if self.FlyPlane[i]["z"] <= self.flyhlow:
+    #             self.FlyPlane[i]["z"] += 1
+    #         else:
+    #             self.parkingrandmove(i)
+    #         return
+    #     min_index = dis_we_enemy.index(min(dis_we_enemy))
+    #     if self.uavenemy[min_index]["no"] not in self.enemyhasbeenchoose:
+    #         self.enemyhasbeenchoose.append(self.uavenemy[min_index]["no"])
+    #     enemyx = self.uavenemy[min_index]["x"]
+    #     enemyy = self.uavenemy[min_index]["y"]
+    #     x_dis = enemyx - self.FlyPlane[i]["x"]
+    #     y_dis = enemyy - self.FlyPlane[i]["y"]
+    #     z_dis = self.uavenemy[min_index]["z"] - self.FlyPlane[i]["z"]
+    #     if x_dis == 0 and y_dis == 0 and z_dis != 0:
+    #         self.FlyPlane[i]["z"] += int(z_dis/(abs(z_dis)))
+    #     else:
+    #         self.movexy(i,enemyx,enemyy)
     def MovetoAttack(self,i):
-        dis_we_enemy = [(enemy["x"] - self.FlyPlane[i]["x"])**2 + (enemy["y"] - self.FlyPlane[i]["y"])**2 \
-                        + (enemy["z"] - self.FlyPlane[i]["z"])**2 if (self.FlyPlane[i]["load_weight"]<=enemy["load_weight"] or enemy["goods_no"]!=-1)\
-                        and enemy["no"] not in self.enemyhasbeenchoose \
-                        else float("inf") for enemy in self.uavenemy]
-        # 如果敌军只有最后一架飞机则一个选择一个与其价值相当的无人机继续撞击任务
+        notinfogenemy = [uav for uav in self.uavenemy if uav["x"] != -1]
+        dis_we_enemy = [abs(enemy["x"] - self.FlyPlane[i]["x"])+ abs(enemy["y"] - self.FlyPlane[i]["y"]) \
+                        + 4*(enemy["z"]-self.flyhlow) if (self.FlyPlane[i]["load_weight"]<=enemy["load_weight"] or enemy["goods_no"]!=-1)\
+                        and enemy["no"] not in self.enemyhasbeenchoose and enemy["no"] not in self.uavonme\
+                        else float("inf") for enemy in notinfogenemy]
+        # by mxq 2018 06 11
+        enemynolist = [uav["no"] for uav in notinfogenemy]
+        enemyalivenolist = [uav["no"] for uav in self.uavenemy]
+        if self.tasklist[i].getpreenemyattackno() != -1 and self.tasklist[i].getpreenemyattackno() not in enemynolist and self.tasklist[i].getpreenemyattackno() in enemyalivenolist and self.FlyPlane[i]["z"] <= self.flyhlow:
+            if self.FlyPlane[i]["z"] - 1 >= 0:
+               self.FlyPlane[i]["z"] -= 1
+            if self.FlyPlane[i]["z"] == 0:
+               self.tasklist[i].setpreenemyattackno(-1)
+            return
+        # ==================
         if not dis_we_enemy or min(dis_we_enemy) == float("inf"):
             if self.FlyPlane[i]["z"] <= self.flyhlow:
                 self.FlyPlane[i]["z"] += 1
@@ -148,13 +187,20 @@ class Algo():
                 self.parkingrandmove(i)
             return
         min_index = dis_we_enemy.index(min(dis_we_enemy))
-        if self.uavenemy[min_index]["no"] not in self.enemyhasbeenchoose:
-            self.enemyhasbeenchoose.append(self.uavenemy[min_index]["no"])
-        enemyx = self.uavenemy[min_index]["x"]
-        enemyy = self.uavenemy[min_index]["y"]
+        if notinfogenemy[min_index]["no"] not in self.enemyhasbeenchoose:
+            self.enemyhasbeenchoose.append(notinfogenemy[min_index]["no"])
+        # by mxq 2018 06 11
+        self.tasklist[i].setpreenemyattackno(notinfogenemy[min_index]["no"])
+        # =================
+        enemyx = notinfogenemy[min_index]["x"]
+        enemyy = notinfogenemy[min_index]["y"]
         x_dis = enemyx - self.FlyPlane[i]["x"]
         y_dis = enemyy - self.FlyPlane[i]["y"]
-        z_dis = self.uavenemy[min_index]["z"] - self.FlyPlane[i]["z"]
+        z_dis = notinfogenemy[min_index]["z"] - self.FlyPlane[i]["z"]
+        if (x_dis != 0 or y_dis != 0) and self.FlyPlane[i]["z"]+1<=self.flyhlow:
+            self.tasklist[i].setpreenemyattackno(-1)
+            self.FlyPlane[i]["z"] += 1
+            return 
         if x_dis == 0 and y_dis == 0 and z_dis != 0:
             self.FlyPlane[i]["z"] += int(z_dis/(abs(z_dis)))
         else:
@@ -264,8 +310,8 @@ class Algo():
                 makepairsign = True
         return findlist
     def goodchooseuav(self,good):
-        dis=[good["value"]/(abs(good["start_x"] - FlyPlane["x"])+abs(good["start_y"] - FlyPlane["y"])+\
-            abs(good["end_x"] - good["start_x"])+abs(good["end_y"] - good["start_y"])+3*(FlyPlane["z"])+FlyPlane["load_weight"])\
+        dis=[good["value"]/(3*(abs(good["start_x"] - FlyPlane["x"])+abs(good["start_y"] - FlyPlane["y"])+\
+            abs(good["end_x"] - good["start_x"])+abs(good["end_y"] - good["start_y"]))+FlyPlane["load_weight"])\
             if FlyPlane != -1 and good != -1 and FlyPlane["status"] !=1 \
             and good["weight"]<=FlyPlane["load_weight"] and good["left_time"]>max([abs(good["start_x"] - FlyPlane["x"]),abs(good["start_y"] - FlyPlane["y"])])+FlyPlane["z"]\
             and (FlyPlane["remain_electricity"] - good["weight"] >= good["weight"] * (2*FlyPlane["z"] + abs(good["end_x"] - good["start_x"]) + abs(good["end_y"] - good["start_y"]))) \
@@ -324,6 +370,9 @@ class Algo():
             #======================
             enemylast = [enemy for enemy in b["UAV_enemy"] if enemy["status"] != 1 and enemy["goods_no"]!=-1]
             welast = [we for we in self.FlyPlane if we["status"] != 1]
+            self.uavonme = []
+            for me in welast:
+               self.uavonme.extend([uav["no"] for uav in b["UAV_enemy"] if (uav["x"] == me["x"] and uav["y"] == me["y"] and uav["z"]>uav["z"] and uav["z"] <= self.flyhlow)])
             #======================
             # 对无人机按照运输能力进行排序
             # self.FlyPlane = sorted(b["UAV_we"] ,key = lambda uav:uav["load_weight"],reverse = True)
@@ -636,8 +685,14 @@ def main(szIp, nPort, szToken):
             wevalue = pstMatchStatus["we_value"]
             enemyaviable = [enemy for enemy in  pstMatchStatus["UAV_enemy"] if enemy["status"] != 1]
             enemyinmyparkingnum = Algo_main.parkingenemynum
-        if carrygoodnum <=1 and wevalue >= F2pri and enemyinmyparkingnum == 0:
-            purchaselist = [{"purchase":"F2"}]
+        if carrygoodnum <=1 and wevalue>= F4pri  and enemyinmyparkingnum == 0:
+            purchaselist = [{"purchase":"F4"} for i in range(int(wevalue/F4pri))]
+            # if wevalue >= (F2pri + F4pri):
+            #    purchaselist = [{"purchase":"F2"},{"purchase":"F4"}]
+            # elif wevalue >= F2pri:
+            #    purchaselist = [{"purchase":"F2"}]
+            # elif wevalue >= F4pri:
+            #    purchaselist = [{"purchase":"F4"}]
         elif enemyinmyparkingnum > 0:
             if enemyinmyparkingnum * F3pri > wevalue:
                 purchaselist = [{"purchase":"F3"} for i in range(int(wevalue/F3pri))]
