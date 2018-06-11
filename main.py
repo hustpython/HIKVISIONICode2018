@@ -3,7 +3,7 @@
 import sys
 import socket
 import json
-# python main.py 47.95.243.246 32178 bda4e23e-5a4f-41e7-9f25-f7bc10f63a4d
+# python main.py 47.94.164.59 32282 41222457-f533-4d00-9ab8-e4cf308ab760
 # 0,F1,100
 # 1,F3,20
 # 2,F3,20
@@ -310,8 +310,8 @@ class Algo():
                 makepairsign = True
         return findlist
     def goodchooseuav(self,good):
-        dis=[good["value"]/(3*(abs(good["start_x"] - FlyPlane["x"])+abs(good["start_y"] - FlyPlane["y"])+\
-            abs(good["end_x"] - good["start_x"])+abs(good["end_y"] - good["start_y"]))+FlyPlane["load_weight"])\
+        dis=[good["value"]/(abs(good["start_x"] - FlyPlane["x"])+abs(good["start_y"] - FlyPlane["y"])+\
+            abs(good["end_x"] - good["start_x"])+abs(good["end_y"] - good["start_y"])+FlyPlane["load_weight"])\
             if FlyPlane != -1 and good != -1 and FlyPlane["status"] !=1 \
             and good["weight"]<=FlyPlane["load_weight"] and good["left_time"]>max([abs(good["start_x"] - FlyPlane["x"]),abs(good["start_y"] - FlyPlane["y"])])+FlyPlane["z"]\
             and (FlyPlane["remain_electricity"] - good["weight"] >= good["weight"] * (2*FlyPlane["z"] + abs(good["end_x"] - good["start_x"]) + abs(good["end_y"] - good["start_y"]))) \
