@@ -3,7 +3,7 @@
 import sys
 import socket
 import json
-# python main.py 47.95.243.246 32728 66c7b4e8-ea70-43e8-8593-4fa0578d58b5
+# python main.py 47.95.243.246 31089 5914f742-9390-4ff7-ba98-78dde2172050
 # 0,F1,100
 # 1,F3,20
 # 2,F3,20
@@ -33,11 +33,9 @@ def SendJuderData(hSocket, dict_send):
     str_json = json.dumps(dict_send)
     len_json = str(len(str_json)).zfill(8)
     str_all = len_json + str_json
-    #print(str_all)
     ret = hSocket.sendall(str_all.encode())
     if ret == None:
         ret = 0
-    #print('sendall', ret)
     return ret
 
 # 用户自定义函数, 返回字典FlyPlane, 需要包括 "UAV_info", "purchase_UAV" 两个key.
@@ -51,7 +49,6 @@ class task_uav(object):
         self.downtogetgood = False
         self.upwithgood = False 
         self.downtoputgood = False
-        self.attackenemy = False
         self.getgoodxy = False
         self.putgoodxy = False
         self.electricitycost = -1
@@ -89,11 +86,6 @@ class task_uav(object):
     #2,我方飞机的价值必须小于敌方飞机价值 + 货物价值
     #3,当敌方飞机正在下降去取货时,可赶至取货点上方进行拦截。
     #4,用价值量小的换取价值量较大的敌机
-
-    def setattackenemy(self,state):
-        self.attackenemy = state
-    def getattackenemy(self):
-        return self.attackenemy
     #===返回上升状态
     def getupwithnogood(self):
         return self.upwithnogood
@@ -172,6 +164,7 @@ class Algo():
         y_dis = y - self.FlyPlane[i]["y"]
         temp_flyx = self.FlyPlane[i]["x"]
         flag_x = 0
+        flag_y = 0
         if self.FlyPlane[i]["z"] <= self.flyhlow:
             self.FlyPlane[i]["z"] += 1
             return
@@ -182,17 +175,18 @@ class Algo():
             if False not in res and ([self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))),self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]] not in self.xyz_status) and (0 <= self.FlyPlane[i]["x"]+int(x_dis/(abs(x_dis))) < self.map_x):
                 self.FlyPlane[i]["x"] += int(x_dis/(abs(x_dis)))
                 flag_x = 1
-            elif self.FlyPlane[i]["z"] + 1 <= self.flayhhight and ([self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]+1] not in self.xyz_status):
-                self.FlyPlane[i]["z"] += 1
-                return
+            elif y_dis == 0 and self.FlyPlane[i]["z"] + 1 <= self.flayhhight and ([self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]+1] not in self.xyz_status):
+                 self.FlyPlane[i]["z"] += 1
+                 return
         if y_dis != 0 and self.FlyPlane[i]["z"] > self.flyhlow:
             res = [False if buildsize["x_start"] <= self.FlyPlane[i]["x"]<= buildsize["x_end"] and \
                     buildsize["y_start"] <= self.FlyPlane[i]["y"]+int(y_dis/(abs(y_dis))) <= buildsize["y_end"] \
                     and self.FlyPlane[i]["z"] <  buildsize["z_end"] else True for buildsize in self.buildings]
             if False not in res and ([self.FlyPlane[i]["x"],self.FlyPlane[i]["y"]+int(y_dis/(abs(y_dis))),self.FlyPlane[i]["z"]] not in self.xyz_status) and (0 <= self.FlyPlane[i]["y"]+int(y_dis/(abs(y_dis))) < self.map_y):
                 self.FlyPlane[i]["y"] += int(y_dis/(abs(y_dis)))
+                falg = 1
             else:
-                if flag_x or x_dis == 0:
+                if flag_x or flag_y or x_dis == 0:
                     if self.FlyPlane[i]["z"] + 1 <= self.flayhhight and ([self.FlyPlane[i]["x"],self.FlyPlane[i]["y"],self.FlyPlane[i]["z"]+1] not in self.xyz_status):
                        self.FlyPlane[i]["z"] += 1
                     self.FlyPlane[i]["x"] = temp_flyx
@@ -290,9 +284,6 @@ class Algo():
             return -1
         return dis.index(max(dis))
 
-    # ====================停机坪找飞机==========================
-    def parkingchoosegood(self):
-        pass
     # =========================== by mxq =====================
     def AlgorithmCalculationFun(self,a, b, c):
         #parse matchstatus
@@ -361,15 +352,6 @@ class Algo():
             self.goodposition.extend([[good["end_x"],good["end_y"]] for good in goods if good["status"] == 0 and good["no"] not in self.enemygoodno])
             for i,_ in enumerate(self.FlyPlane): 
                 # 毁掉的飞机直接跳过
-                if len(enemylast) == 1 and len(welast) == 1 and self.FlyPlane[i]["status"] !=1 and self.FlyPlane[i]["goods_no"] == -1:
-                    uavtask.setdirectkill(True)
-                    uavtask.setcharge(False)
-                    uavtask.setgetgoodxy(False)
-                    uavtask.setupwithgood(False)
-                    uavtask.setputgoodxy(False)
-                    uavtask.setattackenemy(False)
-                    uavtask.setdowntogetgood(False)
-                    uavtask.setdowntoputgood(False)
                 if self.FlyPlane[i]["status"] == 1:
                     continue
                 # 根据self.FlyPlane的编号找到相对应的uavtask
@@ -380,6 +362,14 @@ class Algo():
                     uavtask = task_uav()
                     uavtask.setuavno(self.FlyPlane[i]["no"])
                 # 如果无人机的状态为需要充电并且无人机当前位置在停机坪则进行充电
+                if len(enemylast) == 1 and len(welast) == 1 and self.FlyPlane[i]["status"] !=1 and self.FlyPlane[i]["goods_no"] == -1:
+                    uavtask.setdirectkill(True)
+                    uavtask.setcharge(False)
+                    uavtask.setgetgoodxy(False)
+                    uavtask.setupwithgood(False)
+                    uavtask.setputgoodxy(False)
+                    uavtask.setdowntogetgood(False)
+                    uavtask.setdowntoputgood(False)
                 if uavtask.getcharge():
                     # 如果观测到停机坪有充电后的飞机起飞则需要进行避让
                     # 对F3飞机直接进行飞行
