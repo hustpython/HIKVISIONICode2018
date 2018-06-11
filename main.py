@@ -3,7 +3,7 @@
 import sys
 import socket
 import json
-# python main0611.py 47.95.243.246 32369 839f0e54-199a-48e2-928e-d170f6944879
+# python main.py 47.95.243.246 32178 bda4e23e-5a4f-41e7-9f25-f7bc10f63a4d
 # 0,F1,100
 # 1,F3,20
 # 2,F3,20
@@ -321,7 +321,7 @@ class Algo():
         return dis.index(max(dis))
     def uavchoosegood(self,uav):
         dis=[good["value"]/(abs(good["start_x"] - uav["x"])+abs(good["start_y"] - uav["y"])+\
-            abs(good["end_x"] - good["start_x"])+abs(good["end_y"] - good["start_y"])+3*(uav["z"])+uav["load_weight"])\
+            abs(good["end_x"] - good["start_x"])+abs(good["end_y"] - good["start_y"])+uav["load_weight"])\
             if good != -1 and uav != -1 and uav["status"] != 1\
             and good["weight"]<=uav["load_weight"] and good["left_time"]>max([abs(good["start_x"] - uav["x"]),abs(good["start_y"] - uav["y"])])+uav["z"]\
             and (uav["remain_electricity"] - good["weight"] >= good["weight"] * (2*uav["z"] + abs(good["end_x"] - good["start_x"]) + abs(good["end_y"] - good["start_y"]))) \
